@@ -24,7 +24,10 @@ from .downloader import (
 from .metadata import fetch_metadata, is_igdb_configured, search_covers
 from .watcher import start_watcher, get_status as watcher_status
 from .retroachievements import is_configured as ra_configured, search_game as ra_search, get_game_achievements
-from .rom_store import ARCHIVE_COLLECTIONS, get_collection_files, search_archive_global
+from .rom_store import (
+    ARCHIVE_COLLECTIONS, get_collection_files, get_all_console_files,
+    search_by_name, search_archive_global, build_pack,
+)
 
 BASE_DIR = Path(__file__).parent.parent
 ROMS_PATH = Path.home() / "roms"
@@ -476,13 +479,19 @@ async def browse(request: Request, console: str = "NintendoDS"):
 
 @app.get("/api/browse/files")
 async def api_browse_files(identifier: str, console: str):
-    files = await get_collection_files(identifier, console)
-    return files
+    return await get_collection_files(identifier, console)
 
 
 @app.get("/api/browse/search")
 async def api_browse_search(q: str, console: str):
+    """Search Archive.org items (for extra results panel)."""
     return await search_archive_global(q, console)
+
+
+@app.get("/api/search/roms")
+async def api_search_roms(q: str, console: str):
+    """Search for a game by name across all collections for a console."""
+    return await search_by_name(q, console)
 
 
 @app.post("/api/browse/download")
@@ -492,7 +501,7 @@ async def api_browse_download(
     title: str = Form(...),
     console: str = Form(...),
 ):
-    """Add a ROM from the browser to the download queue + auto-fetch metadata."""
+    """Add a ROM to the download queue + auto-fetch IGDB metadata."""
     disc_group, disc_number = get_disc_group(title)
     game_id = add_game(
         title=title,
@@ -505,3 +514,49 @@ async def api_browse_download(
     background_tasks.add_task(download_rom, game_id, url, console)
     background_tasks.add_task(fetch_metadata, game_id, title, console)
     return {"id": game_id, "title": title, "console": console, "status": "queued"}
+
+
+@app.get("/api/browse/pack")
+async def api_browse_pack(
+    console: str,
+    max_gb: float = 4.0,
+    strategy: str = "random",
+):
+    """Generate a ROM pack: select games to fill target size."""
+    all_files = await get_all_console_files(console)
+    if not all_files:
+        return {"games": [], "total_size": 0, "count": 0, "console": console}
+    max_bytes = int(max_gb * 1024 ** 3)
+    selected, total = build_pack(all_files, max_bytes, strategy=strategy)
+    return {
+        "games": selected,
+        "total_size": total,
+        "count": len(selected),
+        "console": console,
+        "max_gb": max_gb,
+        "available": len(all_files),
+    }
+
+
+@app.post("/api/browse/pack/download")
+async def api_browse_pack_download(
+    background_tasks: BackgroundTasks,
+    urls: str = Form(...),
+    titles: str = Form(...),
+    console: str = Form(...),
+):
+    """Download all games in a pack (newline-separated urls and titles)."""
+    url_list = [u.strip() for u in urls.splitlines() if u.strip()]
+    title_list = [t.strip() for t in titles.splitlines() if t.strip()]
+    added = []
+    for i, url in enumerate(url_list):
+        title = title_list[i] if i < len(title_list) else url.split("/")[-1]
+        disc_group, disc_number = get_disc_group(title)
+        game_id = add_game(
+            title=title, console=console, region="EU", download_url=url,
+            disc_number=disc_number, disc_group=disc_group if disc_number else None,
+        )
+        background_tasks.add_task(download_rom, game_id, url, console)
+        background_tasks.add_task(fetch_metadata, game_id, title, console)
+        added.append({"id": game_id, "title": title})
+    return {"added": len(added), "games": added}

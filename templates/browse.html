@@ -6,64 +6,88 @@
 <title>Buscar ROMs — ROM Library</title>
 <link rel="stylesheet" href="/static/css/base.css">
 <style>
-  body { padding-bottom: 80px; }
-  .topbar-simple { background:#1a1a2e; border-bottom:1px solid #2d2d44; padding:10px 16px; display:flex; align-items:center; gap:10px; position:sticky; top:0; z-index:20; flex-wrap:wrap; }
-  h1 { font-size:18px; font-weight:700; margin:0; }
-  .page { max-width:1100px; margin:0 auto; padding:12px 16px; }
+body { padding-bottom: 80px; }
+.topbar-simple { background:#1a1a2e; border-bottom:1px solid #2d2d44; padding:10px 16px; display:flex; align-items:center; gap:10px; position:sticky; top:0; z-index:20; flex-wrap:wrap; }
+h1 { font-size:18px; font-weight:700; margin:0; }
+.page { max-width:1100px; margin:0 auto; padding:12px 16px; }
 
-  /* Console selector */
-  .console-pills { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
-  .pill { padding:6px 14px; border-radius:999px; font-size:12px; cursor:pointer; border:1px solid #3d3d5c; background:transparent; color:#9ca3af; transition:all .15s; text-decoration:none; display:inline-block; }
-  .pill:hover { border-color:#6366f1; color:#c7d2fe; }
-  .pill.active { background:#312e81; border-color:#6366f1; color:#c7d2fe; font-weight:600; }
+/* Console pills */
+.console-pills { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:14px; }
+.cpill { padding:5px 12px; border-radius:999px; font-size:11px; cursor:pointer; border:1px solid #3d3d5c; background:transparent; color:#9ca3af; transition:all .15s; text-decoration:none; display:inline-block; }
+.cpill:hover { border-color:#818cf8; color:#c7d2fe; }
+.cpill.active { background:#312e81; border-color:#818cf8; color:#c7d2fe; font-weight:600; }
 
-  /* Collections row */
-  .coll-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
-  .coll-btn { padding:6px 14px; border-radius:8px; font-size:12px; cursor:pointer; border:1px solid #3d3d5c; background:#1e1e32; color:#9ca3af; transition:all .15s; }
-  .coll-btn:hover { border-color:#818cf8; color:#c7d2fe; }
-  .coll-btn.active { background:#312e81; border-color:#818cf8; color:#c7d2fe; }
+/* Main search hero */
+.search-hero { background:#12122a; border:2px solid #3d3d5c; border-radius:14px; padding:18px; margin-bottom:16px; transition:border-color .2s; }
+.search-hero:focus-within { border-color:#6366f1; }
+.search-hero-label { font-size:11px; color:#4b5563; margin-bottom:8px; text-transform:uppercase; letter-spacing:.06em; }
+.search-row { display:flex; gap:8px; }
+.search-row input { flex:1; font-size:16px; }
 
-  /* Search bar */
-  .search-row { display:flex; gap:8px; margin-bottom:16px; }
-  .search-row input { flex:1; }
+/* Tabs */
+.tabs { display:flex; gap:0; border-bottom:1px solid #2d2d44; margin-bottom:14px; }
+.tab-btn { padding:8px 18px; font-size:13px; font-weight:600; background:none; border:none; color:#6b7280; cursor:pointer; border-bottom:2px solid transparent; transition:all .15s; }
+.tab-btn.active { color:#818cf8; border-bottom-color:#818cf8; }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
 
-  /* ROM table */
-  .rom-table { width:100%; border-collapse:collapse; }
-  .rom-table th { text-align:left; padding:8px 12px; font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:#4b5563; border-bottom:1px solid #2d2d44; white-space:nowrap; }
-  .rom-table td { padding:8px 12px; border-bottom:1px solid #1e1e32; vertical-align:middle; font-size:13px; }
-  .rom-table tr:hover td { background:#1e1e32; }
-  .rom-title { font-weight:600; color:#e2e8f0; }
-  .rom-meta  { font-size:11px; color:#4b5563; margin-top:2px; }
+/* Collection row */
+.coll-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+.coll-btn { padding:5px 12px; border-radius:7px; font-size:12px; cursor:pointer; border:1px solid #3d3d5c; background:#1e1e32; color:#9ca3af; transition:all .15s; }
+.coll-btn:hover { border-color:#818cf8; color:#c7d2fe; }
+.coll-btn.active { background:#312e81; border-color:#818cf8; color:#c7d2fe; }
 
-  /* Status col */
-  .dl-status { font-size:11px; color:#4b5563; white-space:nowrap; }
+/* ROM table */
+.rom-table { width:100%; border-collapse:collapse; }
+.rom-table th { text-align:left; padding:8px 10px; font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:#4b5563; border-bottom:1px solid #2d2d44; white-space:nowrap; }
+.rom-table td { padding:7px 10px; border-bottom:1px solid #1e1e32; vertical-align:middle; font-size:13px; }
+.rom-table tr:hover td { background:#1e1e32; }
+.rom-title { font-weight:600; color:#e2e8f0; }
+.rom-meta  { font-size:11px; color:#4b5563; margin-top:1px; }
 
-  /* Skeleton loader */
-  .skel { background:linear-gradient(90deg,#1e1e32 25%,#2d2d44 50%,#1e1e32 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:4px; height:14px; }
-  @keyframes shimmer { 0%{background-position:200%}100%{background-position:-200%} }
-  .skel-row { padding:10px 12px; border-bottom:1px solid #1e1e32; display:flex; gap:12px; }
-  .skel-row .skel:first-child { flex:3; }
-  .skel-row .skel:last-child  { flex:1; }
+/* Pack creator */
+.pack-box { background:#12122a; border:1px solid #2d2d44; border-radius:12px; padding:16px; margin-bottom:14px; }
+.pack-box h2 { font-size:14px; font-weight:700; margin:0 0 12px; color:#a5b4fc; }
+.size-pills { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+.size-pill { padding:6px 14px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; border:2px solid #3d3d5c; background:#1e1e32; color:#9ca3af; transition:all .15s; }
+.size-pill:hover { border-color:#6366f1; color:#c7d2fe; }
+.size-pill.active { border-color:#6366f1; background:#312e81; color:#c7d2fe; }
+.strategy-row { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+.strat-btn { padding:5px 12px; border-radius:7px; font-size:12px; cursor:pointer; border:1px solid #3d3d5c; background:#1e1e32; color:#9ca3af; transition:all .15s; }
+.strat-btn:hover { border-color:#6366f1; color:#c7d2fe; }
+.strat-btn.active { background:#312e81; border-color:#6366f1; color:#c7d2fe; }
 
-  /* Empty / error */
-  .state-msg { text-align:center; padding:48px 16px; color:#4b5563; }
-  .state-msg .icon { font-size:40px; display:block; margin-bottom:10px; }
+/* Pack preview */
+.pack-preview { background:#1e1e32; border-radius:10px; padding:14px; margin-top:12px; }
+.pack-preview-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.pack-game-row { display:flex; align-items:center; gap:10px; padding:5px 0; border-bottom:1px solid #2d2d44; font-size:12px; }
+.pack-game-row:last-child { border-bottom:none; }
+.pack-game-row .chk { accent-color:#6366f1; width:14px; height:14px; cursor:pointer; }
 
-  /* Progress inline */
-  .dl-progress { width:80px; height:5px; background:#1e3a5f; border-radius:3px; overflow:hidden; display:inline-block; vertical-align:middle; margin-left:6px; }
-  .dl-progress-fill { height:100%; background:#3b82f6; transition:width .6s; }
+/* Skeleton */
+.skel { background:linear-gradient(90deg,#1e1e32 25%,#2d2d44 50%,#1e1e32 75%); background-size:200%; animation:shimmer 1.3s infinite; border-radius:4px; height:13px; }
+@keyframes shimmer { 0%{background-position:200%}100%{background-position:-200%} }
+.skel-row { padding:10px; border-bottom:1px solid #1e1e32; display:flex; gap:12px; }
 
-  /* Toast */
-  #toast { position:fixed; bottom:72px; right:16px; z-index:100; }
-  @media(min-width:1024px) { #toast { bottom:20px; right:20px; } }
+/* State messages */
+.state-msg { text-align:center; padding:40px 16px; color:#4b5563; }
+.state-msg .icon { font-size:36px; display:block; margin-bottom:8px; }
+
+/* Inline download progress */
+.dl-bar { width:70px; height:5px; background:#1e3a5f; border-radius:3px; overflow:hidden; display:inline-block; vertical-align:middle; margin-left:5px; }
+.dl-bar-fill { height:100%; background:#3b82f6; transition:width .5s; }
+
+/* Toast */
+#toast { position:fixed; bottom:72px; right:16px; z-index:100; }
+@media(min-width:1024px) { #toast { bottom:20px; right:20px; } }
 </style>
 </head>
 <body>
 
 <div class="topbar-simple">
   <a href="/" style="color:#818cf8;text-decoration:none;font-size:18px;line-height:1;">←</a>
-  <h1>🔍 Buscar ROMs</h1>
-  <div style="margin-left:auto;font-size:12px;color:#4b5563;">Archive.org</div>
+  <h1>🔍 Buscar &amp; Descargar ROMs</h1>
+  <div style="margin-left:auto;font-size:11px;color:#4b5563;">via Archive.org</div>
 </div>
 
 <div class="page">
@@ -71,60 +95,117 @@
   <!-- Console selector -->
   <div class="console-pills" style="margin-top:12px;">
     {% for c in consoles %}
-    <a href="/browse?console={{ c }}" class="pill {{ 'active' if selected_console == c else '' }}">{{ c }}</a>
+    <a href="/browse?console={{ c }}" class="cpill {{ 'active' if selected_console == c else '' }}">{{ c }}</a>
     {% endfor %}
   </div>
 
-  <!-- Search in Archive.org globally -->
-  <div class="search-row">
-    <input id="search-input" class="inp" placeholder="Buscar juego por nombre… (ej: Mario, Zelda, Gran Turismo)" style="font-size:14px;">
-    <button onclick="doSearch()" class="btn btn-indigo btn-sm">Buscar</button>
-    <button onclick="clearSearch()" class="btn btn-gray btn-sm" id="btn-clear" style="display:none;">✕</button>
-  </div>
-
-  <!-- Collections from Archive.org -->
-  {% if collections %}
-  <div style="font-size:11px;color:#4b5563;margin-bottom:8px;">Colecciones disponibles para <strong style="color:#a5b4fc;">{{ selected_console }}</strong>:</div>
-  <div class="coll-row" id="coll-row">
-    {% for col in collections %}
-    <button class="coll-btn {{ 'active' if loop.first else '' }}"
-            onclick="loadCollection('{{ col.id }}', this)"
-            data-id="{{ col.id }}">
-      {{ col.name }}
-    </button>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="state-msg"><span class="icon">📭</span>No hay colecciones configuradas para {{ selected_console }}</div>
-  {% endif %}
-
-  <!-- ROM list -->
-  <div id="rom-container">
-    {% if collections %}
-    <!-- skeleton while loading -->
-    <div id="skeleton">
-      {% for i in range(12) %}
-      <div class="skel-row"><div class="skel"></div><div class="skel"></div></div>
-      {% endfor %}
+  <!-- Search hero -->
+  <div class="search-hero">
+    <div class="search-hero-label">Buscar juego por nombre — <strong style="color:#818cf8;">{{ selected_console }}</strong></div>
+    <div class="search-row">
+      <input id="search-input" class="inp" placeholder="Escribe el nombre del juego… ej: Mario, Zelda, Pokémon…" autofocus>
+      <button onclick="doSearch()" class="btn btn-indigo">🔍 Buscar</button>
     </div>
-    {% endif %}
-
-    <table class="rom-table" id="rom-table" style="display:none;">
-      <thead>
-        <tr>
-          <th>Juego</th>
-          <th class="hide-sm">Tamaño</th>
-          <th>Acción</th>
-        </tr>
-      </thead>
-      <tbody id="rom-body"></tbody>
-    </table>
-    <div id="rom-msg" class="state-msg" style="display:none;"></div>
+    <div id="search-hint" style="font-size:11px;color:#4b5563;margin-top:6px;">Busca en todas las colecciones de {{ selected_console }} disponibles en Archive.org.</div>
   </div>
 
-  <!-- Search results (Archive.org items) -->
-  <div id="search-results" style="display:none;"></div>
+  <!-- Search results (shown when searching) -->
+  <div id="search-results-panel" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span id="search-count" style="font-size:13px;font-weight:600;"></span>
+      <button onclick="clearSearch()" class="btn btn-gray btn-sm">✕ Limpiar búsqueda</button>
+    </div>
+    <table class="rom-table" id="search-table">
+      <thead><tr><th>Juego</th><th class="hide-sm">Tamaño</th><th>Acción</th></tr></thead>
+      <tbody id="search-body"></tbody>
+    </table>
+    <div id="search-msg" class="state-msg" style="display:none;"></div>
+  </div>
 
+  <!-- Main browser tabs (hidden while searching) -->
+  <div id="browser-panel">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('browse',this)">📂 Explorar colecciones</button>
+      <button class="tab-btn" onclick="switchTab('pack',this)">📦 Crear pack</button>
+    </div>
+
+    <!-- Tab: Browse collections -->
+    <div class="tab-panel active" id="tab-browse">
+      {% if collections %}
+      <div style="font-size:11px;color:#4b5563;margin-bottom:6px;">Colecciones para {{ selected_console }}:</div>
+      <div class="coll-row" id="coll-row">
+        {% for col in collections %}
+        <button class="coll-btn {{ 'active' if loop.first else '' }}"
+                onclick="loadCollection('{{ col.id }}',this)"
+                data-id="{{ col.id }}">{{ col.name }}</button>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div id="browse-skeleton">
+        {% for i in range(10) %}
+        <div class="skel-row"><div class="skel" style="flex:3;"></div><div class="skel" style="flex:1;"></div></div>
+        {% endfor %}
+      </div>
+      <table class="rom-table" id="browse-table" style="display:none;">
+        <thead><tr><th>Juego</th><th class="hide-sm">Tamaño</th><th>Acción</th></tr></thead>
+        <tbody id="browse-body"></tbody>
+      </table>
+      <div id="browse-msg" class="state-msg" style="display:none;"></div>
+    </div>
+
+    <!-- Tab: Pack creator -->
+    <div class="tab-panel" id="tab-pack">
+      <div class="pack-box">
+        <h2>📦 Crear pack de juegos</h2>
+        <p style="font-size:13px;color:#6b7280;margin:0 0 12px;">Selecciona cuánto espacio quieres llenar y generamos una selección automática.</p>
+
+        <div style="font-size:11px;color:#4b5563;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Tamaño objetivo</div>
+        <div class="size-pills">
+          <button class="size-pill" onclick="selectSize(0.5,this)">500MB</button>
+          <button class="size-pill" onclick="selectSize(1,this)">1 GB</button>
+          <button class="size-pill active" onclick="selectSize(2,this)">2 GB</button>
+          <button class="size-pill" onclick="selectSize(4,this)">4 GB</button>
+          <button class="size-pill" onclick="selectSize(8,this)">8 GB</button>
+          <button class="size-pill" onclick="selectSize(16,this)">16 GB</button>
+          <button class="size-pill" onclick="selectSize(32,this)">32 GB</button>
+          <button class="size-pill" onclick="selectSize(64,this)">64 GB</button>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input id="custom-size" type="number" class="inp" style="width:80px;font-size:13px;padding:5px 8px;" placeholder="GB" min="0.1" step="0.5">
+            <button onclick="selectCustomSize()" class="btn btn-gray btn-sm">✓</button>
+          </div>
+        </div>
+
+        <div style="font-size:11px;color:#4b5563;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Selección</div>
+        <div class="strategy-row">
+          <button class="strat-btn active" onclick="selectStrategy('random',this)">🎲 Aleatorio</button>
+          <button class="strat-btn" onclick="selectStrategy('largest',this)">⬆️ Más grandes primero</button>
+          <button class="strat-btn" onclick="selectStrategy('smallest',this)">⬇️ Más pequeños primero</button>
+        </div>
+
+        <button onclick="generatePack()" class="btn btn-indigo" id="btn-gen">✨ Generar pack</button>
+        <span id="pack-gen-status" style="font-size:12px;color:#4b5563;margin-left:10px;"></span>
+      </div>
+
+      <!-- Pack preview -->
+      <div id="pack-preview" style="display:none;">
+        <div class="pack-preview">
+          <div class="pack-preview-header">
+            <div>
+              <span id="pack-summary" style="font-size:14px;font-weight:700;"></span>
+              <span id="pack-size-display" style="font-size:12px;color:#4b5563;margin-left:8px;"></span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button onclick="generatePack()" class="btn btn-gray btn-sm">🔄 Regenerar</button>
+              <button onclick="downloadPack()" class="btn btn-green" id="btn-dl-pack">⬇️ Descargar todo</button>
+            </div>
+          </div>
+          <div id="pack-list" style="max-height:400px;overflow-y:auto;"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /browser-panel -->
 </div>
 
 <!-- Toast -->
@@ -134,9 +215,11 @@
 
 <script>
 const CONSOLE = '{{ selected_console }}';
-let _allRoms = [];
-let _filterStr = '';
-let _dlStatus = {};  // url → {status, progress}
+let _collectionRoms = [];   // currently loaded collection files
+let _packGames = [];        // current pack selection
+let _selectedSizeGb = 2;
+let _selectedStrategy = 'random';
+let _dlStatus = {};         // url → {status, progress, game_id}
 
 function $id(id) { return document.getElementById(id); }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -155,204 +238,224 @@ function toast(msg, color='#6366f1') {
   _tt=setTimeout(()=>t.style.display='none', 4000);
 }
 
-// ── Load collection ───────────────────────────────────────────────────────────
-async function loadCollection(identifier, btn) {
-  document.querySelectorAll('.coll-btn').forEach(b=>b.classList.remove('active'));
-  if(btn) btn.classList.add('active');
-  $id('search-results').style.display='none';
-  $id('rom-table').style.display='none';
-  $id('rom-msg').style.display='none';
-  $id('skeleton').style.display='block';
-
-  const r = await fetch(`/api/browse/files?identifier=${encodeURIComponent(identifier)}&console=${encodeURIComponent(CONSOLE)}`);
-  const files = await r.json();
-  $id('skeleton').style.display='none';
-
-  if(!files.length || files[0]?.error) {
-    $id('rom-msg').style.display='block';
-    $id('rom-msg').innerHTML=`<span class="icon">😕</span>No se pudieron cargar los archivos${files[0]?.error?' — '+esc(files[0].error):''}`;
-    return;
-  }
-
-  _allRoms = files;
-  renderRoms(_filterStr);
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  $id('tab-'+name).classList.add('active');
 }
 
-function renderRoms(filter) {
-  const filtered = filter
-    ? _allRoms.filter(r => r.title.toLowerCase().includes(filter.toLowerCase()) || r.filename.toLowerCase().includes(filter.toLowerCase()))
-    : _allRoms;
-
-  if(!filtered.length) {
-    $id('rom-table').style.display='none';
-    $id('rom-msg').style.display='block';
-    $id('rom-msg').innerHTML='<span class="icon">🔎</span>Sin resultados para "<strong>'+esc(filter)+'</strong>"';
-    return;
-  }
-
-  $id('rom-msg').style.display='none';
-  $id('rom-table').style.display='table';
-
-  $id('rom-body').innerHTML = filtered.map(rom => {
-    const st = _dlStatus[rom.url];
-    let actionHtml;
-    if(st?.status === 'downloading' || st?.status === 'queued') {
-      actionHtml = `<button class="btn btn-gray btn-sm" disabled>
-        ${st.status==='downloading'?'⬇️':'🕐'} ${st.progress||0}%
-        <span class="dl-progress"><span class="dl-progress-fill" style="width:${st.progress||0}%"></span></span>
-      </button>`;
-    } else if(st?.status === 'owned') {
-      actionHtml = `<span style="color:#6ee7b7;font-size:12px;">✅ Descargado</span>`;
-    } else {
-      actionHtml = `<button onclick="downloadRom(${JSON.stringify(esc(rom.url))},${JSON.stringify(esc(rom.title))},this)" class="btn btn-green btn-sm">⬇️ Descargar</button>`;
-    }
-    return `<tr>
-      <td>
-        <div class="rom-title">${esc(rom.title)}</div>
-        <div class="rom-meta">${esc(rom.filename)}</div>
-      </td>
-      <td class="hide-sm" style="color:#4b5563;white-space:nowrap;">${fmtSize(rom.size)}</td>
-      <td>${actionHtml}</td>
-    </tr>`;
-  }).join('');
-}
-
-// ── Download ROM ──────────────────────────────────────────────────────────────
-async function downloadRom(url, title, btn) {
-  btn.disabled = true;
-  btn.textContent = '⏳ Añadiendo…';
-  const fd = new FormData();
-  fd.append('url', url);
-  fd.append('title', title);
-  fd.append('console', CONSOLE);
-  const r = await fetch('/api/browse/download', { method: 'POST', body: fd });
-  if(r.ok) {
-    const d = await r.json();
-    _dlStatus[url] = { status: 'queued', progress: 0, game_id: d.id };
-    btn.closest('tr').querySelector('td:last-child').innerHTML =
-      `<button class="btn btn-gray btn-sm" disabled>🕐 En cola…</button>`;
-    toast(`⬇️ "${title}" — buscando carátula…`, '#059669');
-    pollDownload(url, d.id, title);
-  } else {
-    btn.disabled = false;
-    btn.textContent = '⬇️ Descargar';
-    toast('❌ Error al añadir', '#dc2626');
-  }
-}
-
-// ── Poll download progress ────────────────────────────────────────────────────
-async function pollDownload(url, gameId, title) {
-  const interval = setInterval(async () => {
-    try {
-      const g = await fetch(`/api/games/${gameId}`).then(r=>r.json());
-      _dlStatus[url] = { status: g.status, progress: 0 };
-
-      if(g.status === 'owned') {
-        clearInterval(interval);
-        toast(`✅ "${title}" descargado`, '#059669');
-        renderRoms(_filterStr);
-        return;
-      }
-      if(g.status === 'failed') {
-        clearInterval(interval);
-        delete _dlStatus[url];
-        toast(`❌ Error descargando "${title}"`, '#dc2626');
-        renderRoms(_filterStr);
-        return;
-      }
-
-      // Get progress from active downloads
-      const active = await fetch('/api/downloads/active').then(r=>r.json());
-      const dl = active.find(d => d.game_id === gameId);
-      if(dl) {
-        _dlStatus[url] = { status: 'downloading', progress: dl.progress || 0, game_id: gameId };
-        renderRoms(_filterStr);
-      }
-    } catch {}
-  }, 3000);
-}
-
-// ── Live search filter ────────────────────────────────────────────────────────
+// ── Search by game name ───────────────────────────────────────────────────────
+$id('search-input').addEventListener('keydown', e => { if(e.key==='Enter') doSearch(); });
 $id('search-input').addEventListener('input', e => {
-  _filterStr = e.target.value.trim();
-  if(_allRoms.length) {
-    // Local filter within loaded collection
-    renderRoms(_filterStr);
-  }
-  $id('btn-clear').style.display = _filterStr ? 'inline-flex' : 'none';
+  if(!e.target.value.trim()) clearSearch();
 });
 
-$id('search-input').addEventListener('keydown', e => {
-  if(e.key === 'Enter') doSearch();
-});
-
-function clearSearch() {
-  $id('search-input').value = '';
-  _filterStr = '';
-  $id('btn-clear').style.display = 'none';
-  $id('search-results').style.display = 'none';
-  if(_allRoms.length) renderRoms('');
-}
-
-// ── Global Archive.org search ─────────────────────────────────────────────────
 async function doSearch() {
   const q = $id('search-input').value.trim();
   if(!q) return;
-  _filterStr = q;
-  $id('btn-clear').style.display = 'inline-flex';
 
-  if(_allRoms.length) {
-    // Filter locally first
-    renderRoms(q);
-  }
+  $id('search-results-panel').style.display = 'block';
+  $id('browser-panel').style.display = 'none';
+  $id('search-count').textContent = 'Buscando…';
+  $id('search-body').innerHTML = [...Array(6)].map(()=>`
+    <tr><td><div class="skel" style="width:70%;"></div></td><td><div class="skel" style="width:50px;"></div></td><td><div class="skel" style="width:80px;"></div></td></tr>`).join('');
+  $id('search-table').style.display='table';
+  $id('search-msg').style.display='none';
 
-  // Also search Archive.org globally
-  const el = $id('search-results');
-  el.style.display = 'block';
-  el.innerHTML = '<div style="color:#4b5563;font-size:13px;padding:12px 0;">Buscando en Archive.org…</div>';
+  const r = await fetch(`/api/search/roms?q=${encodeURIComponent(q)}&console=${encodeURIComponent(CONSOLE)}`);
+  const results = await r.json();
 
-  const res = await fetch(`/api/browse/search?q=${encodeURIComponent(q)}&console=${encodeURIComponent(CONSOLE)}`).then(r=>r.json());
-  if(!res.length) {
-    el.innerHTML = '<div style="color:#4b5563;font-size:13px;padding:12px 0;">Sin resultados adicionales en Archive.org.</div>';
+  if(!results.length) {
+    $id('search-table').style.display='none';
+    $id('search-msg').style.display='block';
+    $id('search-msg').innerHTML=`<span class="icon">🔎</span>No se encontró "<strong>${esc(q)}</strong>" en ninguna colección de ${CONSOLE}.<br><small style="color:#6b7280;">Prueba con otro nombre o revisa la ortografía.</small>`;
+    $id('search-count').textContent='0 resultados';
     return;
   }
 
-  el.innerHTML = `
-    <div style="font-size:11px;color:#4b5563;text-transform:uppercase;letter-spacing:.08em;padding:12px 0 8px;">
-      También encontrado en Archive.org:
-    </div>
-    <div style="display:grid;gap:8px;">
-      ${res.map(item => `
-        <div style="background:#1e1e32;border:1px solid #2d2d44;border-radius:10px;padding:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-          <div style="min-width:0;flex:1;">
-            <div style="font-size:13px;font-weight:600;color:#e2e8f0;margin-bottom:2px;">${esc(item.title)}</div>
-            <div style="font-size:11px;color:#4b5563;">${esc(item.description)}</div>
-            <code style="font-size:10px;color:#6b7280;">${esc(item.identifier)}</code>
-          </div>
-          <div style="display:flex;gap:6px;flex-shrink:0;">
-            <button onclick="loadFromItem('${esc(item.identifier)}',this)" class="btn btn-indigo btn-sm">Ver ROMs</button>
-          </div>
-        </div>`).join('')}
-    </div>`;
+  $id('search-count').textContent=`${results.length} resultado${results.length!==1?'s':''} para "${q}"`;
+  $id('search-body').innerHTML = results.map(rom => romRow(rom)).join('');
 }
 
-async function loadFromItem(identifier, btn) {
-  btn.textContent = '⏳…';
-  btn.disabled = true;
+function clearSearch() {
+  $id('search-input').value='';
+  $id('search-results-panel').style.display='none';
+  $id('browser-panel').style.display='block';
+}
+
+// ── ROM row (shared by search + browse) ──────────────────────────────────────
+function romRow(rom) {
+  const st = _dlStatus[rom.url];
+  let action;
+  if(st?.status==='owned') {
+    action = `<span style="color:#6ee7b7;font-size:12px;">✅ Descargado</span>`;
+  } else if(st?.status==='downloading'||st?.status==='queued') {
+    const p=st.progress||0;
+    action = `<button class="btn btn-gray btn-sm" disabled>
+      ${st.status==='downloading'?'⬇️':'🕐'} ${p}%
+      <span class="dl-bar"><span class="dl-bar-fill" style="width:${p}%"></span></span>
+    </button>`;
+  } else {
+    action = `<button onclick="downloadRom(${JSON.stringify(rom.url)},${JSON.stringify(rom.title)},this)" class="btn btn-green btn-sm">⬇️ Descargar</button>`;
+  }
+  return `<tr>
+    <td>
+      <div class="rom-title">${esc(rom.title)}</div>
+      <div class="rom-meta">${esc(rom.filename||'')}${rom.collection?` · <span style="color:#6366f1;">${esc(rom.collection)}</span>`:''}
+      </div>
+    </td>
+    <td class="hide-sm" style="color:#4b5563;white-space:nowrap;">${fmtSize(rom.size)}</td>
+    <td>${action}</td>
+  </tr>`;
+}
+
+// ── Browse collection ─────────────────────────────────────────────────────────
+async function loadCollection(identifier, btn) {
   document.querySelectorAll('.coll-btn').forEach(b=>b.classList.remove('active'));
-  $id('search-results').style.display = 'none';
-  await loadCollection(identifier, null);
-  btn.textContent = 'Ver ROMs';
-  btn.disabled = false;
+  if(btn) btn.classList.add('active');
+  $id('browse-skeleton').style.display='block';
+  $id('browse-table').style.display='none';
+  $id('browse-msg').style.display='none';
+
+  const r = await fetch(`/api/browse/files?identifier=${encodeURIComponent(identifier)}&console=${encodeURIComponent(CONSOLE)}`);
+  const files = await r.json();
+  $id('browse-skeleton').style.display='none';
+
+  if(!files.length||files[0]?.error) {
+    $id('browse-msg').style.display='block';
+    $id('browse-msg').innerHTML=`<span class="icon">😕</span>${files[0]?.error?esc(files[0].error):'Colección vacía o sin archivos para este formato.'}`;
+    return;
+  }
+
+  _collectionRoms = files;
+  $id('browse-table').style.display='table';
+  $id('browse-body').innerHTML = files.map(rom => romRow(rom)).join('');
 }
 
-// ── Auto-load first collection ────────────────────────────────────────────────
-const firstColl = document.querySelector('.coll-btn');
-if(firstColl) {
-  loadCollection(firstColl.dataset.id, firstColl);
-} else {
-  $id('skeleton').style.display = 'none';
+// ── Download single ROM ───────────────────────────────────────────────────────
+async function downloadRom(url, title, btn) {
+  btn.disabled=true; btn.textContent='⏳…';
+  const fd=new FormData();
+  fd.append('url',url); fd.append('title',title); fd.append('console',CONSOLE);
+  const r=await fetch('/api/browse/download',{method:'POST',body:fd});
+  if(r.ok){
+    const d=await r.json();
+    _dlStatus[url]={status:'queued',progress:0,game_id:d.id};
+    btn.closest('tr').querySelector('td:last-child').innerHTML=
+      `<button class="btn btn-gray btn-sm" disabled>🕐 En cola…</button>`;
+    toast(`⬇️ "${title}" añadido · buscando carátula…`,'#059669');
+    pollDownload(url,d.id);
+  } else {
+    btn.disabled=false; btn.textContent='⬇️ Descargar';
+    toast('❌ Error al añadir','#dc2626');
+  }
 }
+
+async function pollDownload(url, gameId) {
+  const iv=setInterval(async()=>{
+    try{
+      const g=await fetch(`/api/games/${gameId}`).then(r=>r.json());
+      if(g.status==='owned'){clearInterval(iv);_dlStatus[url]={status:'owned'};refreshRomRows();return;}
+      if(g.status==='failed'){clearInterval(iv);delete _dlStatus[url];toast('❌ Descarga fallida','#dc2626');return;}
+      const active=await fetch('/api/downloads/active').then(r=>r.json());
+      const dl=active.find(d=>d.game_id===gameId);
+      if(dl){_dlStatus[url]={status:'downloading',progress:dl.progress||0,game_id:gameId};refreshRomRows();}
+    }catch{}
+  },3000);
+}
+
+function refreshRomRows(){
+  if($id('browse-body').innerHTML) $id('browse-body').innerHTML=_collectionRoms.map(romRow).join('');
+  // Refresh search table if visible
+  const sbody=$id('search-body');
+  if(sbody&&$id('search-results-panel').style.display!=='none'){
+    sbody.querySelectorAll('tr').forEach(tr=>{
+      const btn=tr.querySelector('button.btn-green');
+      if(btn){const url=btn.getAttribute('onclick')?.match(/downloadRom\("([^"]+)"/)?.[1]; if(url&&_dlStatus[url]){tr.outerHTML=romRow(_dlStatus[url]);}}
+    });
+  }
+}
+
+// ── Pack creator ──────────────────────────────────────────────────────────────
+function selectSize(gb, btn) {
+  document.querySelectorAll('.size-pill').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  _selectedSizeGb = gb;
+  $id('custom-size').value='';
+}
+function selectCustomSize(){
+  const v=parseFloat($id('custom-size').value);
+  if(!v||v<=0)return;
+  document.querySelectorAll('.size-pill').forEach(b=>b.classList.remove('active'));
+  _selectedSizeGb=v;
+}
+function selectStrategy(s,btn){
+  document.querySelectorAll('.strat-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  _selectedStrategy=s;
+}
+
+async function generatePack(){
+  const btn=$id('btn-gen');
+  btn.disabled=true; btn.textContent='⏳ Generando…';
+  $id('pack-gen-status').textContent=`Cargando colecciones de ${CONSOLE}…`;
+
+  const r=await fetch(`/api/browse/pack?console=${encodeURIComponent(CONSOLE)}&max_gb=${_selectedSizeGb}&strategy=${_selectedStrategy}`);
+  const data=await r.json();
+
+  btn.disabled=false; btn.textContent='✨ Generar pack';
+  $id('pack-gen-status').textContent=`${data.available||0} ROMs disponibles`;
+
+  if(!data.games?.length){
+    toast('Sin juegos disponibles para este tamaño','#374151');
+    return;
+  }
+
+  _packGames=data.games;
+  $id('pack-preview').style.display='block';
+  $id('pack-summary').textContent=`${data.count} juego${data.count!==1?'s':''}`;
+  $id('pack-size-display').textContent=`${fmtSize(data.total_size)} / ${_selectedSizeGb} GB objetivo`;
+
+  $id('pack-list').innerHTML=data.games.map((g,i)=>`
+    <div class="pack-game-row">
+      <input type="checkbox" class="chk" checked data-idx="${i}" id="pk-${i}">
+      <label for="pk-${i}" style="flex:1;cursor:pointer;">
+        <span style="font-weight:600;">${esc(g.title)}</span>
+        <span style="color:#4b5563;font-size:11px;margin-left:6px;">${fmtSize(g.size)}</span>
+      </label>
+    </div>`).join('');
+}
+
+async function downloadPack(){
+  const checked=[...$id('pack-list').querySelectorAll('.chk:checked')].map(c=>_packGames[parseInt(c.dataset.idx)]);
+  if(!checked.length){toast('Selecciona al menos un juego','#374151');return;}
+
+  const btn=$id('btn-dl-pack');
+  btn.disabled=true; btn.textContent='⏳ Añadiendo…';
+
+  const fd=new FormData();
+  fd.append('urls',checked.map(g=>g.url).join('\n'));
+  fd.append('titles',checked.map(g=>g.title).join('\n'));
+  fd.append('console',CONSOLE);
+
+  const r=await fetch('/api/browse/pack/download',{method:'POST',body:fd});
+  if(r.ok){
+    const d=await r.json();
+    toast(`✅ ${d.added} juegos añadidos a la cola`,'#059669');
+    btn.textContent='✅ Descargando…';
+    setTimeout(()=>{btn.disabled=false;btn.textContent='⬇️ Descargar todo';},3000);
+  } else {
+    toast('❌ Error','#dc2626');
+    btn.disabled=false; btn.textContent='⬇️ Descargar todo';
+  }
+}
+
+// ── Init: auto-load first collection ─────────────────────────────────────────
+const firstColl=document.querySelector('.coll-btn');
+if(firstColl) loadCollection(firstColl.dataset.id, firstColl);
+else $id('browse-skeleton').style.display='none';
 </script>
 </body>
 </html>
