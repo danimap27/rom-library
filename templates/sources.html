@@ -88,6 +88,7 @@
     <button class="tab" onclick="filterConsole('snes', this)">SNES</button>
     <button class="tab" onclick="filterConsole('n64', this)">N64</button>
     <button class="tab" onclick="filterConsole('gamecube', this)">GameCube</button>
+    <button class="tab" onclick="filterConsole('hack', this)" style="background:#1a1a3e;border-color:#6366f1;color:#c7d2fe;">🧬 ROM Hacks</button>
   </div>
 
   <!-- ── Archive.org ─────────────────────────────────────────────────────── -->
@@ -274,6 +275,130 @@
         <div style="display:flex;gap:6px;">
           <input id="archive-search" class="inp" style="font-size:13px;" placeholder="Nombre del juego…" onkeydown="if(event.key==='Enter')searchArchive()">
           <button onclick="searchArchive()" class="btn btn-indigo btn-sm">Buscar</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Custom ROMs / ROM Hacks ───────────────────────────────────────── -->
+  <div class="section" data-consoles="all hack gba nds snes n64 psp ps1">
+    <div class="section-title">🧬 Custom ROMs y ROM Hacks</div>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:6px;">
+      Los ROM hacks son modificaciones de juegos originales hechas por la comunidad: nuevos niveles,
+      historias alternativas, dificultad aumentada, traducciones no oficiales o juegos completamente nuevos
+      construidos sobre el motor de uno existente.
+    </p>
+    <div style="background:#0d1117;border:1px solid #2d2d44;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#6b7280;line-height:1.7;">
+      <strong style="color:#e2e8f0;">¿Cómo funcionan?</strong> Los hacks se distribuyen como <strong style="color:#e2e8f0;">parches</strong> (.ips, .bps, .ups)
+      — no contienen el juego, solo los cambios. Necesitas la ROM original y aplicarle el parche con una herramienta
+      como <strong style="color:#e2e8f0;">Lunar IPS</strong> o <strong style="color:#e2e8f0;">beat</strong>. El resultado es un nuevo .gba/.nds/etc. que ya puedes añadir a ROM Library.
+    </div>
+
+    <div class="source-grid">
+
+      <div class="source-card" data-consoles="all hack gba nds snes n64 ps1 psp">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <h3>ROMhacking.net</h3>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            <span class="tag tag-free">Gratis</span>
+            <span class="tag tag-legal">Solo parches</span>
+          </div>
+        </div>
+        <p>La base de datos más grande de ROM hacks y traducciones. Más de 40.000 parches para todas las consolas. Incluye traducciones al español de juegos que nunca salieron en Europa.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="https://www.romhacking.net/hacks/" target="_blank" class="btn btn-indigo btn-sm">🔍 Explorar hacks</a>
+          <a href="https://www.romhacking.net/translations/?lang%5B%5D=18" target="_blank" class="btn btn-gray btn-sm">🇪🇸 Traducciones ES</a>
+          <a href="https://www.romhacking.net/utilities/" target="_blank" class="btn btn-gray btn-sm">🔧 Herramientas de parcheo</a>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#374151;">Consolas: GBA, NDS, SNES, NES, N64, PS1 y más</div>
+      </div>
+
+      <div class="source-card" data-consoles="all hack gba nds">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <h3>Pokémon ROM Hacks</h3>
+          <div style="display:flex;gap:4px;">
+            <span class="tag tag-free">Gratis</span>
+            <span class="tag tag-es">Algunos en ES</span>
+          </div>
+        </div>
+        <p>La comunidad más activa de hacks. Juegos como <em>Pokémon Unbound</em>, <em>Radical Red</em>, <em>Emerald Kaizo</em> o <em>Crystal Clear</em> son tan completos como los oficiales.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="https://www.romhacking.net/hacks/?platform%5B%5D=13&platform%5B%5D=12" target="_blank" class="btn btn-indigo btn-sm">ROMhacking GBA/GBC</a>
+          <a href="https://archive.org/search?query=pokemon+rom+hack+gba&mediatype=software" target="_blank" class="btn btn-gray btn-sm">Archive.org</a>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#374151;">
+          Populares: Unbound · Radical Red · Emerald Rogue · Crystal Clear · Sacred Gold
+        </div>
+      </div>
+
+      <div class="source-card" data-consoles="all hack gba nds snes">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <h3>Traducciones al español</h3>
+          <div style="display:flex;gap:4px;">
+            <span class="tag tag-free">Gratis</span>
+            <span class="tag tag-es">Español</span>
+          </div>
+        </div>
+        <p>Juegos que nunca tuvieron traducción oficial al español, parcheados por la comunidad hispana. Fire Emblem, Mother 3, Famicom Detective Club, juegos de NES/SNES japoneses…</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="https://www.romhacking.net/translations/?lang%5B%5D=18" target="_blank" class="btn btn-indigo btn-sm">Traducciones ES</a>
+          <a href="https://www.romhacking.net/translations/?lang%5B%5D=18&platform%5B%5D=13" target="_blank" class="btn btn-gray btn-sm">Solo GBA</a>
+          <a href="https://www.romhacking.net/translations/?lang%5B%5D=18&platform%5B%5D=3" target="_blank" class="btn btn-gray btn-sm">Solo SNES</a>
+        </div>
+      </div>
+
+      <div class="source-card" data-consoles="all snes n64 gba nds">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <h3>Zelda ROM Hacks</h3>
+          <div style="display:flex;gap:4px;">
+            <span class="tag tag-free">Gratis</span>
+          </div>
+        </div>
+        <p>Hacks de Zelda con mazmorras nuevas, mundos alternativos o dificultad aumentada. <em>Zelda: Parallel Worlds</em> (SNES), <em>Zelda Mystery of Solarus</em> y hacks de OoT son los más famosos.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="https://www.romhacking.net/hacks/?platform%5B%5D=3&game%5B%5D=2" target="_blank" class="btn btn-indigo btn-sm">Zelda SNES hacks</a>
+          <a href="https://www.romhacking.net/hacks/?platform%5B%5D=9&game%5B%5D=17" target="_blank" class="btn btn-gray btn-sm">Zelda N64 hacks</a>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#374151;">
+          Populares: Parallel Worlds · Outlands · Shadow of Night · Voyager of Time
+        </div>
+      </div>
+
+      <div class="source-card" data-consoles="all nds">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <h3>Nintendo DS Hacks</h3>
+          <div style="display:flex;gap:4px;">
+            <span class="tag tag-free">Gratis</span>
+          </div>
+        </div>
+        <p>Hacks para NDS, especialmente Pokémon. También hay hacks de Mario Kart DS, New Super Mario Bros y varios RPGs con contenido nuevo.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="https://www.romhacking.net/hacks/?platform%5B%5D=15" target="_blank" class="btn btn-indigo btn-sm">NDS hacks</a>
+          <a href="https://gbatemp.net/categories/nds-hacking-and-homebrew.166/" target="_blank" class="btn btn-gray btn-sm">GBAtemp NDS</a>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#374151;">
+          Populares: Pokémon Blaze Black · Volt White · Sacred Gold · Storm Silver
+        </div>
+      </div>
+
+      <!-- Parcheo -->
+      <div class="source-card" data-consoles="all hack gba nds snes n64 ps1 psp">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <h3>🔧 Cómo aplicar un parche</h3>
+          <span class="tag tag-legal">Tutorial</span>
+        </div>
+        <p>Pasos para convertir un parche .ips/.bps en un ROM listo para jugar:</p>
+        <ol style="font-size:12px;color:#6b7280;margin:0 0 10px;padding-left:16px;line-height:1.9;">
+          <li>Descarga la ROM original del juego base</li>
+          <li>Descarga el parche (.ips o .bps) desde ROMhacking.net</li>
+          <li>Abre <strong style="color:#e2e8f0;">Lunar IPS</strong> (Windows) o <strong style="color:#e2e8f0;">beat</strong> (multiplataforma)</li>
+          <li>Aplica el parche sobre la ROM original</li>
+          <li>Guarda el resultado y añádelo a ROM Library</li>
+        </ol>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="https://www.romhacking.net/utilities/240/" target="_blank" class="btn btn-gray btn-sm">Descargar Lunar IPS</a>
+          <a href="https://www.romhacking.net/utilities/893/" target="_blank" class="btn btn-gray btn-sm">Descargar beat</a>
         </div>
       </div>
 
