@@ -11,7 +11,11 @@ from .database import (
     get_disk_stats,
 )
 from .scanner import scan_directory, CONSOLES, CONSOLE_EXTENSIONS, url_to_game_info
-from .downloader import download_rom, format_size, format_speed, format_eta, queue_status, aria2_version
+from .downloader import (
+    download_rom, format_size, format_speed, format_eta,
+    queue_status, aria2_version, aria2_pause, aria2_resume, aria2_cancel,
+    aria2_global_stats, get_game_gid,
+)
 from .metadata import fetch_metadata, is_igdb_configured, search_covers
 
 BASE_DIR = Path(__file__).parent.parent
@@ -257,7 +261,37 @@ async def api_cover_search(q: str, console: str = ""):
 @app.get("/api/aria2/status")
 async def api_aria2_status():
     version = await aria2_version()
-    return {"online": version is not None, "version": version}
+    stats = await aria2_global_stats() if version else {}
+    return {"online": version is not None, "version": version, **stats}
+
+
+@app.post("/api/aria2/pause/{game_id}")
+async def api_aria2_pause(game_id: int):
+    gid = get_game_gid(game_id)
+    if not gid:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    await aria2_pause(gid)
+    update_game(game_id, status="queued")
+    return {"status": "paused"}
+
+
+@app.post("/api/aria2/resume/{game_id}")
+async def api_aria2_resume(game_id: int):
+    gid = get_game_gid(game_id)
+    if not gid:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    await aria2_resume(gid)
+    update_game(game_id, status="downloading")
+    return {"status": "resumed"}
+
+
+@app.post("/api/aria2/cancel/{game_id}")
+async def api_aria2_cancel(game_id: int):
+    gid = get_game_gid(game_id)
+    if gid:
+        await aria2_cancel(gid)
+    update_game(game_id, status="failed")
+    return {"status": "cancelled"}
 
 
 @app.get("/api/downloads/active")

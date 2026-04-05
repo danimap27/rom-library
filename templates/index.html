@@ -497,11 +497,16 @@ async function refreshDl(){
         <span class="badge badge-${d.status}" style="margin-left:8px;flex-shrink:0;">${d.status}</span>
       </div>
       ${d.status==='downloading'||d.status==='queued'?`
-        <div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" style="width:${d.progress}%"></div></div>
+        <div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" style="width:${d.progress||0}%"></div></div>
         <div style="display:flex;justify-content:space-between;font-size:10px;color:#4b5563;margin-top:3px;">
-          <span>${d.progress}%${d.speed?' · '+fmtSpd(d.speed):''}</span>
+          <span>${d.progress||0}%${d.speed?' · '+fmtSpd(d.speed):''}</span>
           <span>${d.eta?'ETA '+fmtEta(d.eta):''}</span>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <button onclick="pauseDl(${d.game_id||d.id})" class="btn btn-gray btn-sm" style="font-size:10px;padding:3px 8px;">⏸ Pausar</button>
+          <button onclick="cancelDl(${d.game_id||d.id})" class="btn btn-red btn-sm" style="font-size:10px;padding:3px 8px;">✕ Cancelar</button>
         </div>`:''}
+      ${d.status==='failed'?`<div style="display:flex;gap:6px;margin-top:6px;"><button onclick="retryFromDl(${d.game_id||d.id})" class="btn btn-green btn-sm" style="font-size:10px;padding:3px 8px;">↺ Reintentar</button></div>`:''}
       ${d.error?`<div style="font-size:11px;color:#f87171;margin-top:4px;">${esc(d.error)}</div>`:''}
     </div>`).join('');
 }
@@ -567,6 +572,24 @@ async function pollActive(){
 }
 setInterval(pollActive,2500);
 pollActive();
+
+// ── Aria2 download controls ───────────────────────────────────────────────────
+async function pauseDl(gameId){
+  await fetch(`/api/aria2/pause/${gameId}`,{method:'POST'});
+  toast('⏸ Pausado','#374151'); refreshDl();
+}
+async function cancelDl(gameId){
+  if(!confirm('¿Cancelar esta descarga?'))return;
+  await fetch(`/api/aria2/cancel/${gameId}`,{method:'POST'});
+  toast('✕ Cancelado','#dc2626'); setTimeout(()=>location.reload(),600);
+}
+async function retryFromDl(gameId){
+  const g=await fetch(`/api/games/${gameId}`).then(r=>r.json());
+  if(!g.download_url)return;
+  const fd=new FormData(); fd.append('download_url',g.download_url); fd.append('status','downloading');
+  await fetch(`/api/games/${gameId}`,{method:'PUT',body:fd});
+  toast('↺ Reintentando','#059669'); refreshDl();
+}
 
 // ── View toggle (grid / list) ─────────────────────────────────────────────────
 let _viewMode = localStorage.getItem('viewMode') || 'grid';

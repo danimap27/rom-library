@@ -47,6 +47,14 @@ async def _remove(gid: str):
     await _rpc("aria2.removeDownloadResult", [gid])
 
 
+# ── GID tracking (game_id → aria2 GID) ────────────────────────────────────────
+_game_gid: dict[int, str] = {}
+
+
+def get_game_gid(game_id: int) -> str | None:
+    return _game_gid.get(game_id)
+
+
 # ── Public interface ───────────────────────────────────────────────────────────
 
 MAX_CONCURRENT = 3
@@ -83,10 +91,12 @@ async def _do_aria2_download(game_id: int, url: str, console: str):
         update_game(game_id, status="failed")
         return
 
+    _game_gid[game_id] = gid
     update_download(dl_id, status="downloading", progress=0)
     update_game(game_id, status="downloading")
 
     await _poll_aria2(gid, game_id, dl_id, console)
+    _game_gid.pop(game_id, None)
 
 
 async def _add_torrent_from_url(url: str, dest_dir: str, game_id: int, dl_id: int) -> str | None:
@@ -154,6 +164,33 @@ def _get_file_path(st: dict) -> str:
 
 
 # ── Aria2 health check ─────────────────────────────────────────────────────────
+
+async def aria2_pause(gid: str):
+    await _rpc("aria2.pause", [gid])
+
+
+async def aria2_resume(gid: str):
+    await _rpc("aria2.unpause", [gid])
+
+
+async def aria2_cancel(gid: str):
+    await _rpc("aria2.remove", [gid])
+    await _rpc("aria2.removeDownloadResult", [gid])
+
+
+async def aria2_global_stats() -> dict:
+    try:
+        res = await _rpc("aria2.getGlobalStat", [])
+        r = res.get("result", {})
+        return {
+            "active": int(r.get("numActive", 0)),
+            "waiting": int(r.get("numWaiting", 0)),
+            "stopped": int(r.get("numStoppedTotal", 0)),
+            "download_speed": int(r.get("downloadSpeed", 0)),
+        }
+    except Exception:
+        return {}
+
 
 async def aria2_version() -> str | None:
     """Return aria2 version string or None if unreachable."""
