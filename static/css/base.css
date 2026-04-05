@@ -222,6 +222,31 @@ textarea.inp { resize: vertical; }
 .stat-bar { background: #2d2d44; border-radius: 4px; height: 8px; overflow: hidden; }
 .stat-fill { background: linear-gradient(90deg,#6366f1,#818cf8); height: 100%; border-radius: 4px; transition: width 0.8s; }
 
+/* ── Games list view ──────────────────────────────────────────────────────── */
+.games-list {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.games-list th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #4b5563;
+  border-bottom: 1px solid #2d2d44;
+  white-space: nowrap;
+}
+.games-list td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #1e1e32;
+  vertical-align: middle;
+}
+.games-list tr:hover td { background: #1e1e32; }
+@media (max-width: 640px) { .hide-sm { display: none !important; } }
+@media (max-width: 1023px) { .hide-lg { display: none !important; } }
+
 /* ── Cover picker ─────────────────────────────────────────────────────────── */
 .cover-pick { cursor: pointer; border: 2px solid transparent; border-radius: 8px; overflow: hidden; transition: border-color .15s; }
 .cover-pick:hover { border-color: #6366f1; }

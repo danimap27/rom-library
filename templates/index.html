@@ -84,6 +84,7 @@
         {% if search %}<a href="/?{% if selected_console %}console={{ selected_console }}{% endif %}" style="color:#6b7280;font-size:20px;line-height:1;text-decoration:none;padding:0 2px;">×</a>{% endif %}
       </form>
       <div class="topbar-actions">
+        <button id="view-toggle" onclick="toggleView()" class="btn btn-gray btn-sm hide-mobile" title="Cambiar vista">⊞</button>
         <button onclick="openBulk()" class="btn btn-green btn-sm hide-mobile">📋 Bulk</button>
         <button onclick="openAdd()" class="btn btn-indigo btn-sm">+ Añadir</button>
       </div>
@@ -119,7 +120,8 @@
         <a href="/sources" style="margin-top:8px;color:#818cf8;font-size:13px;text-decoration:none;">Ver fuentes de descarga →</a>
       </div>
       {% else %}
-      <div class="games-grid">
+      <!-- Grid view -->
+      <div class="games-grid" id="view-grid">
         {% for game in games %}
         <div class="card" onclick="openGame({{ game.id }})">
           <div style="position:relative;height:180px;">
@@ -144,6 +146,43 @@
         </div>
         {% endfor %}
       </div>
+
+      <!-- List view -->
+      <table class="games-list" id="view-list" style="display:none;">
+        <thead>
+          <tr>
+            <th style="width:36px;"></th>
+            <th>Juego</th>
+            <th class="hide-sm">Consola</th>
+            <th class="hide-sm">Año</th>
+            <th class="hide-sm">Género</th>
+            <th>Estado</th>
+            <th class="hide-sm">Tamaño</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for game in games %}
+        <tr onclick="openGame({{ game.id }})" style="cursor:pointer;">
+          <td>
+            {% if game.cover_url %}
+            <img src="{{ game.cover_url }}" style="width:28px;height:36px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none'">
+            {% else %}
+            <span style="font-size:20px;">{{ console_emoji(game.console) }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="font-size:13px;font-weight:600;color:#e2e8f0;">{{ game.title }}</div>
+            <div style="font-size:11px;color:#818cf8;" class="hide-lg">{{ game.console }}</div>
+          </td>
+          <td class="hide-sm" style="font-size:12px;color:#818cf8;">{{ game.console }}</td>
+          <td class="hide-sm" style="font-size:12px;color:#4b5563;">{{ game.year or '–' }}</td>
+          <td class="hide-sm" style="font-size:12px;color:#6b7280;">{{ game.genre or '–' }}</td>
+          <td><span class="badge badge-{{ game.status or 'pending' }}">{{ status_icon(game.status) }}</span></td>
+          <td class="hide-sm" style="font-size:12px;color:#6ee7b7;">{{ game.file_size | format_size if game.file_size else '–' }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
       {% endif %}
     </div>
   </main>
@@ -528,6 +567,21 @@ async function pollActive(){
 }
 setInterval(pollActive,2500);
 pollActive();
+
+// ── View toggle (grid / list) ─────────────────────────────────────────────────
+let _viewMode = localStorage.getItem('viewMode') || 'grid';
+function applyView(){
+  const g=$id('view-grid'), l=$id('view-list'), btn=$id('view-toggle');
+  if(!g)return;
+  if(_viewMode==='list'){ g.style.display='none'; l.style.display='table'; if(btn)btn.textContent='⊟'; }
+  else { g.style.display=''; l.style.display='none'; if(btn)btn.textContent='⊞'; }
+}
+function toggleView(){
+  _viewMode = _viewMode==='grid'?'list':'grid';
+  localStorage.setItem('viewMode',_viewMode);
+  applyView();
+}
+applyView();
 
 // ── Aria2 status ──────────────────────────────────────────────────────────────
 async function checkAria2(){
