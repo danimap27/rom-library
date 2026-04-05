@@ -1,0 +1,14 @@
+[Unit]
+Description=ROM Library Web
+After=network.target
+
+[Service]
+User=YOUR_USER
+WorkingDirectory=/path/to/rom-library
+ExecStart=/path/to/rom-library/venv/bin/python run.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
