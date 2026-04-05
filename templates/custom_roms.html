@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Custom ROMs — ROM Library</title>
+<link rel="stylesheet" href="/static/css/base.css">
+<style>
+  .page { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  .topbar-simple { background:#1a1a2e; border-bottom:1px solid #2d2d44; padding:12px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; flex-wrap:wrap; }
+  h1 { font-size:20px; font-weight:700; margin:0; }
+  @media(max-width:600px) { h1 { font-size:17px; } }
+
+  /* Category tabs */
+  .cat-tabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; }
+  .tab { padding:5px 14px; border-radius:999px; font-size:12px; cursor:pointer; border:1px solid #3d3d5c; background:transparent; color:#9ca3af; transition:all .15s; }
+  .tab:hover { border-color:#6366f1; color:#c7d2fe; }
+  .tab.active { background:#312e81; border-color:#6366f1; color:#c7d2fe; }
+
+  /* Hack cards grid */
+  .hacks-grid { display:grid; gap:14px; grid-template-columns:1fr; margin-bottom:32px; }
+  @media(min-width:560px) { .hacks-grid { grid-template-columns:repeat(2,1fr); } }
+  @media(min-width:900px) { .hacks-grid { grid-template-columns:repeat(3,1fr); } }
+
+  .hack-card { background:#1e1e32; border:1px solid #2d2d44; border-radius:12px; overflow:hidden; transition:border-color .18s, transform .18s; }
+  .hack-card:hover { border-color:#6366f1; transform:translateY(-1px); }
+  .hack-header { padding:14px 14px 10px; }
+  .hack-header h3 { font-size:14px; font-weight:700; margin:0 0 3px; color:#e2e8f0; }
+  .hack-base { font-size:11px; color:#818cf8; margin-bottom:6px; }
+  .hack-desc { font-size:12px; color:#6b7280; line-height:1.5; margin-bottom:10px; }
+  .hack-tags { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px; }
+  .hack-footer { padding:10px 14px; border-top:1px solid #1e1e32; background:#17172a; display:flex; align-items:center; gap:8px; }
+
+  /* Tags */
+  .tag { font-size:10px; padding:2px 8px; border-radius:999px; font-weight:600; }
+  .tag-enhancement { background:#1e3a5f; color:#93c5fd; }
+  .tag-difficulty   { background:#4c0519; color:#fca5a5; }
+  .tag-story        { background:#3b1f04; color:#fde68a; }
+  .tag-translation  { background:#064e3b; color:#6ee7b7; }
+  .tag-quality      { background:#1e1b4b; color:#c4b5fd; }
+  .tag-legendary    { background:#713f12; color:#fef3c7; }
+
+  .console-badge { font-size:10px; background:#1e1e32; border:1px solid #3d3d5c; color:#9ca3af; padding:2px 8px; border-radius:999px; }
+
+  /* Section headers */
+  .section-title { font-size:16px; font-weight:700; color:#e2e8f0; margin:32px 0 16px; display:flex; align-items:center; gap:8px; border-bottom:1px solid #2d2d44; padding-bottom:10px; }
+
+  /* Search */
+  .search-box { display:flex; gap:8px; margin-bottom:20px; }
+  .hidden { display:none !important; }
+
+  /* Info banner */
+  .info-banner { background:#12122a; border:1px solid #2d2d44; border-radius:12px; padding:16px; margin-bottom:24px; font-size:13px; color:#9ca3af; line-height:1.6; }
+  .info-banner strong { color:#e2e8f0; }
+
+  /* Stars rating */
+  .stars { color:#fbbf24; font-size:13px; letter-spacing:-1px; }
+</style>
+</head>
+<body style="padding-bottom:80px;">
+
+<div class="topbar-simple">
+  <a href="/" style="color:#818cf8;text-decoration:none;font-size:18px;line-height:1;">←</a>
+  <h1>🛠️ Custom ROMs &amp; Hacks</h1>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <a href="/archive" class="btn btn-gray btn-sm">📦 Archive</a>
+    <a href="/sources" class="btn btn-gray btn-sm">🌐 Fuentes</a>
+  </div>
+</div>
+
+<div class="page">
+
+  <div class="info-banner">
+    <strong>¿Qué son los Custom ROMs?</strong> Son modificaciones de juegos originales: traducciones, mejoras de dificultad, nuevas historias, corrección de bugs o ports no oficiales.
+    Necesitas la ROM original del juego y aplicar el <strong>parche (.ips / .bps / .ups)</strong> con una herramienta como <strong>Floating IPS</strong> o <strong>beat</strong>.
+    Muchos hacks ya se distribuyen como ROM lista para jugar (pre-patched).
+  </div>
+
+  <!-- Search -->
+  <div class="search-box">
+    <input type="text" class="inp" id="search-hacks" placeholder="Buscar hack, juego base, consola…" oninput="filterHacks(this.value)">
+  </div>
+
+  <!-- Category tabs -->
+  <div class="cat-tabs">
+    <button class="tab active" onclick="filterCat('all',this)">Todos</button>
+    <button class="tab" onclick="filterCat('pokemon',this)">Pokémon</button>
+    <button class="tab" onclick="filterCat('zelda',this)">Zelda</button>
+    <button class="tab" onclick="filterCat('mario',this)">Mario</button>
+    <button class="tab" onclick="filterCat('rpg',this)">RPG</button>
+    <button class="tab" onclick="filterCat('translation',this)">Traducciones</button>
+    <button class="tab" onclick="filterCat('difficulty',this)">Dificultad</button>
+    <button class="tab" onclick="filterCat('quality',this)">Quality of Life</button>
+  </div>
+
+  <!-- POKÉMON -->
+  <div class="section-title">⚡ Pokémon</div>
+  <div class="hacks-grid" id="hacks-grid">
+
+    <div class="hack-card" data-cat="pokemon" data-search="pokemon unbound gba fire red">
+      <div class="hack-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <h3>Pokémon Unbound</h3>
+          <span class="console-badge">GBA</span>
+        </div>
+        <div class="hack-base">Base: Pokémon Fire Red</div>
+        <p class="hack-desc">Uno de los mejores hacks de Pokémon. Historia completamente nueva, 800+ Pokémon, dificultad escalable, misiones secundarias, modo desafío.</p>
+        <div class="hack-tags">
+          <span class="tag tag-story">Historia nueva</span>
+          <span class="tag tag-quality">800+ Pokémon</span>
+          <span class="tag tag-legendary">⭐ Legendario</span>
+        </div>
+        <div class="stars">★★★★★</div>
+      </div>
+      <div class="hack-footer">
+        <a href="https://www.pokecommunity.com/showthread.php?t=382178" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">Info / Descargar</a>
+        <button onclick="addHack('Pokémon Unbound','GBA')" class="btn btn-green btn-sm">+ Añadir</button>
+      </div>
+    </div>
+
+    <div class="hack-card" data-cat="pokemon" data-search="pokemon radical red gba fire red difficulty">
+      <div class="hack-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <h3>Pokémon Radical Red</h3>
+          <span class="console-badge">GBA</span>
+        </div>
+        <div class="hack-base">Base: Pokémon Fire Red</div>
+        <p class="hack-desc">Dificultad extrema con Pokémon de todas las generaciones, IA mejorada, mecánicas modernas. Para jugadores veteranos.</p>
+        <div class="hack-tags">
+          <span class="tag tag-difficulty">Dificultad alta</span>
+          <span class="tag tag-quality">Mecánicas gen 8</span>
+        </div>
+        <div class="stars">★★★★★</div>
+      </div>
+      <div class="hack-footer">
+        <a href="https://www.pokecommunity.com/showthread.php?t=444591" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">Info / Descargar</a>
+        <button onclick="addHack('Pokémon Radical Red','GBA')" class="btn btn-green btn-sm">+ Añadir</button>
+      </div>
+    </div>
+
+    <div class="hack-card" data-cat="pokemon" data-search="pokemon crystal clear gbc">
+      <div class="hack-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <h3>Pokémon Crystal Clear</h3>
+          <span class="console-badge">GBC</span>
+        </div>
+        <div class="hack-base">Base: Pokémon Crystal</div>
+        <p class="hack-desc">Open world total: empieza en cualquier ciudad, elige tu Pokémon inicial de todo el Pokédex, personalización de personaje, ambas regiones desbloqueadas.</p>
+        <div class="hack-tags">
+          <span class="tag tag-quality">Open World</span>
+          <span class="tag tag-story">Ambas regiones</span>
+          <span class="tag tag-legendary">⭐ Legendario</span>
+        </div>
+        <div class="stars">★★★★★</div>
+      </div>
+      <div class="hack-footer">
+        <a href="https://github.com/shinyquagsire23/Pokemon-Crystal-Clear" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">Info / Descargar</a>
+        <button onclick="addHack('Pokémon Crystal Clear','GBC')" class="btn btn-green btn-sm">+ Añadir</button>
+      </div>
+    </div>
+
+    <div class="hack-card" data-cat="pokemon" data-search="pokemon blaze black nds black">
+      <div class="hack-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <h3>Pokémon Blaze Black 2</h3>
+          <span class="console-badge">NDS</span>
+        </div>
+        <div class="hack-base">Base: Pokémon Black 2</div>
+        <p class="hack-desc">Todos los 649 Pokémon disponibles en una sola partida, dificultad aumentada, equipos de entrenadores rediseñados.</p>
+        <div class="hack-tags">
+          <span class="tag tag-difficulty">Dificultad alta</span>
+          <span class="tag tag-quality">649 Pokémon</span>
+        </div>
+        <div class="stars">★★★★☆</div>
+      </div>
+      <div class="hack-footer">
+        <a href="https://www.pokecommunity.com/showthread.php?t=261688" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">Info / Descargar</a>
+        <button onclick="addHack('Pokémon Blaze Black 2','NintendoDS')" class="btn btn-green btn-sm">+ Añadir</button>
+      </div>
+    </div>
+
+    <!-- ZELDA -->
+    <div class="hack-card" data-cat="zelda" data-search="zelda ocarina time randomizer n64">
+      <div class="hack-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <h3>OoT Randomizer</h3>
+          <span class="console-badge">N64</span>
+        </div>
+        <div class="hack-base">Base: Zelda: Ocarina of Time</div>
+        <p class="hack-desc">Randomizer oficial de OoT. Mezcla todos los objetos, dungeon shuffle, keysanity. Miles de horas de replay con seeds compartidos.</p>
+        <div class="hack-tags">
+          <span class="tag tag-quality">Randomizer</span>
+          <span class="tag tag-legendary">⭐ Legendario</span>
+        </div>
+        <div class="stars">★★★★★</div>
+      </div>
+      <div class="hack-footer">
+        <a href="https://ootrandomizer.com" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">ootrandomizer.com</a>
+        <button onclick="addHack('Zelda OoT Randomizer','N64')" class="btn btn-green btn-sm">+ Añadir</button>
+      </div>
+    </div>
+
+    <div class="hack-card" data-cat="zelda" data-search="zelda ocarina time 2d gba randomizer">
+      <div class="hack-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <h3>Zelda: Parallel Worlds Remodel</h3>
+          <span class="console-badge">SNES</span>
+        </div>
+        <div class="hack-base">Base: Zelda: A Link to the Past</div>
+        <p class="hack-desc">Hack completo con mundo paralelo nuevo, puzzles rediseñados y dificultad elevada. Considerado uno de los mejores hacks de SNES.</p>
+        <div class="hack-tags">
+          <span class="tag tag-story">Historia nueva</span>
+          <span class="tag tag-difficulty">Dificultad alta</span>
+        </div>
+        <div class="stars">★★★★★</div>
+      </div>
+      <div class="hack-footer">
+        <a href="https://www.romhacking.net/hacks/1973/" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">romhacking.net</a>
+        <button onclick="addHack('Zelda Parallel Worlds Remodel','SNES')" class="btn btn-green btn-sm">+ Añadir</button>
+      </div>
+    </div>
+
+    <!-- MARIO -->
+    <div class="hack-card" data-cat="mario" data-search="super mario world kaizo snes difficulty">
+      <div class="hack-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <h3>Kaizo Mario World</h3>
+          <span class="console-badge">SNES</span>
+        </div>
+        <div class="hack-base">Base: Super Mario World</div>
+        <p class="hack-desc">El hack que originó el género Kaizo. Dificultad brutal, precisión píxel-perfecta requerida. Solo para masoquistas.</p>
+        <div class="hack-tags">
+          <span class="tag tag-difficulty">⚠️ Extremo</span>
+          <span class="tag tag-legendary">⭐ Legendario</span>
+        </div>
+        <div class="stars">★★★★☆</div>
+      </div>
+      <div class="hack-footer">
+        <a href="https://www.romhacking.net/hacks/1939/" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">romhacking.net</a>
+        <button onclick="addHack('Kaizo Mario World','SNES')" class="btn btn-green btn-sm">+ Añadir</button>
+      </div>
+    </div>
+
+    <div class="hack-card" data-cat="mario" data-search="super mario odyssey 64 n64">
+      <div class="hack-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <h3>Super Mario Odyssey 64</h3>
+          <span class="console-badge">N64</span>
+        </div>
+        <div class="hack-base">Base: Super Mario 64</div>
+        <p class="hack-desc">Recrea la experiencia de Odyssey en SM64. Nuevos mundos, mecánicas de captura adaptadas, misiones inéditas.</p>
+        <div class="hack-tags">
+          <span class="tag tag-story">Mundos nuevos</span>
+          <span class="tag tag-quality">Mecánicas nuevas</span>
+        </div>
+        <div class="stars">★★★★☆</div>
+      </div>
+      <div class="hack-footer">
+        <a href="https://www.romhacking.net" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">romhacking.net</a>
+        <button onclick="addHack('Super Mario Odyssey 64','N64')" class="btn btn-green btn-sm">+ Añadir</button>
+      </div>
+    </div>
+
+    <!-- RPG / OTHERS -->
+    <div class="hack-card" data-cat="rpg" data-search="final fantasy tactics war of the lions advance gba">
+      <div class="hack-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <h3>FF Tactics Advance: Romancing Saga</h3>
+          <span class="console-badge">GBA</span>
+        </div>
+        <div class="hack-base">Base: Final Fantasy Tactics Advance</div>
+        <p class="hack-desc">Expansión completa con nuevas razas, trabajos, mapas y misiones. Añade cientos de horas al juego original.</p>
+        <div class="hack-tags">
+          <span class="tag tag-story">Expansión</span>
+          <span class="tag tag-quality">Más contenido</span>
+        </div>
+        <div class="stars">★★★★☆</div>
+      </div>
+      <div class="hack-footer">
+        <a href="https://www.romhacking.net" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">romhacking.net</a>
+        <button onclick="addHack('FF Tactics Advance Romancing Saga','GBA')" class="btn btn-green btn-sm">+ Añadir</button>
+      </div>
+    </div>
+
+    <!-- TRADUCCIONES -->
+    <div class="hack-card" data-cat="translation" data-search="mother 3 traduccion español gba">
+      <div class="hack-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <h3>Mother 3 — Traducción al español</h3>
+          <span class="console-badge">GBA</span>
+        </div>
+        <div class="hack-base">Base: Mother 3 (JP)</div>
+        <p class="hack-desc">Traducción al castellano del cult classic de GBA que nunca llegó a Occidente oficialmente. Calidad profesional.</p>
+        <div class="hack-tags">
+          <span class="tag tag-translation">🇪🇸 Español</span>
+          <span class="tag tag-legendary">⭐ Legendario</span>
+        </div>
+        <div class="stars">★★★★★</div>
+      </div>
+      <div class="hack-footer">
+        <a href="https://www.romhacking.net" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">Descargar parche</a>
+        <button onclick="addHack('Mother 3 (Español)','GBA')" class="btn btn-green btn-sm">+ Añadir</button>
+      </div>
+    </div>
+
+    <div class="hack-card" data-cat="translation" data-search="fire emblem 4 genealogy es gba traduccion">
+      <div class="hack-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <h3>Fire Emblem: Genealogy — ES</h3>
+          <span class="console-badge">SNES</span>
+        </div>
+        <div class="hack-base">Base: Fire Emblem: Genealogy of the Holy War (JP)</div>
+        <p class="hack-desc">Traducción al español del FE más épico de SNES. Nunca salió fuera de Japón oficialmente.</p>
+        <div class="hack-tags">
+          <span class="tag tag-translation">🇪🇸 Español</span>
+        </div>
+        <div class="stars">★★★★★</div>
+      </div>
+      <div class="hack-footer">
+        <a href="https://www.romhacking.net" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">Descargar parche</a>
+        <button onclick="addHack('Fire Emblem Genealogy ES','SNES')" class="btn btn-green btn-sm">+ Añadir</button>
+      </div>
+    </div>
+
+    <!-- QUALITY OF LIFE -->
+    <div class="hack-card" data-cat="quality" data-search="pokemon emerald rogue gba qol">
+      <div class="hack-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <h3>Pokémon Emerald Rogue</h3>
+          <span class="console-badge">GBA</span>
+        </div>
+        <div class="hack-base">Base: Pokémon Emerald</div>
+        <p class="hack-desc">Roguelike de Pokémon. Cada partida es diferente, mundo procedural, builds únicas. Muy rejugable.</p>
+        <div class="hack-tags">
+          <span class="tag tag-quality">Roguelike</span>
+          <span class="tag tag-story">Infinitamente rejugable</span>
+        </div>
+        <div class="stars">★★★★★</div>
+      </div>
+      <div class="hack-footer">
+        <a href="https://github.com/Pokabbie/pokeemerald-rogue" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">GitHub</a>
+        <button onclick="addHack('Pokémon Emerald Rogue','GBA')" class="btn btn-green btn-sm">+ Añadir</button>
+      </div>
+    </div>
+
+    <div class="hack-card" data-cat="quality" data-search="gba classic nes quality improvement">
+      <div class="hack-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <h3>Metroid: Zero Mission QoL</h3>
+          <span class="console-badge">GBA</span>
+        </div>
+        <div class="hack-base">Base: Metroid: Zero Mission</div>
+        <p class="hack-desc">Parche de mejoras: mapas más detallados, corrección de bugs, saves en cualquier momento, velocidad mejorada.</p>
+        <div class="hack-tags">
+          <span class="tag tag-quality">Quality of Life</span>
+          <span class="tag tag-enhancement">Bug fixes</span>
+        </div>
+        <div class="stars">★★★★☆</div>
+      </div>
+      <div class="hack-footer">
+        <a href="https://www.romhacking.net" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">romhacking.net</a>
+        <button onclick="addHack('Metroid Zero Mission QoL','GBA')" class="btn btn-green btn-sm">+ Añadir</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Tools section -->
+  <div class="section-title">🔧 Herramientas para aplicar parches</div>
+  <div style="display:grid;gap:12px;grid-template-columns:1fr;">
+    <div style="background:#1e1e32;border:1px solid #2d2d44;border-radius:12px;padding:16px;">
+      <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;">
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Floating IPS (Flips)</div>
+          <div style="font-size:12px;color:#6b7280;line-height:1.5;">La herramienta más popular para aplicar parches .ips y .bps. Multiplataforma. Arrastra la ROM y el parche.</div>
+        </div>
+        <a href="https://github.com/Alcaro/Flips" target="_blank" rel="noopener" class="btn btn-gray btn-sm">GitHub</a>
+      </div>
+    </div>
+    <div style="background:#1e1e32;border:1px solid #2d2d44;border-radius:12px;padding:16px;">
+      <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;">
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px;">ROM Patcher JS</div>
+          <div style="font-size:12px;color:#6b7280;line-height:1.5;">Aplicar parches .ips / .bps / .ups directamente en el navegador. Sin instalar nada.</div>
+        </div>
+        <a href="https://www.marcrobledo.com/RomPatcher.js/" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">Abrir web</a>
+      </div>
+    </div>
+    <div style="background:#1e1e32;border:1px solid #2d2d44;border-radius:12px;padding:16px;">
+      <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;">
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px;">romhacking.net</div>
+          <div style="font-size:12px;color:#6b7280;line-height:1.5;">El repositorio más grande de parches, traducciones y hacks. +90.000 parches catalogados.</div>
+        </div>
+        <a href="https://www.romhacking.net" target="_blank" rel="noopener" class="btn btn-gray btn-sm">Visitar</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal añadir hack -->
+<div id="modal-add-hack" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.8);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#1a1a2e;border:1px solid #3d3d5c;border-radius:16px;width:100%;max-width:420px;padding:24px;">
+    <div style="font-size:16px;font-weight:700;margin-bottom:16px;" id="hack-modal-title">Añadir a biblioteca</div>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:16px;">Añade este juego a tu biblioteca. Para descargarlo necesitas encontrar la ROM pre-parchada en las fuentes de la comunidad.</p>
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeHackModal()" class="btn btn-gray btn-sm">Cancelar</button>
+      <a id="hack-sources-btn" href="/sources" class="btn btn-indigo btn-sm">🌐 Ver fuentes</a>
+      <button id="hack-confirm-btn" onclick="confirmAddHack()" class="btn btn-green btn-sm">✅ Añadir</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom nav (mobile) -->
+<nav class="bottom-nav">
+  <a href="/"><span class="icon">🎮</span>Juegos</a>
+  <a href="/archive"><span class="icon">📦</span>Archive</a>
+  <a href="/custom-roms" class="active"><span class="icon">🛠️</span>Custom</a>
+  <a href="/sources"><span class="icon">🌐</span>Fuentes</a>
+  <a href="/"><span class="icon">☰</span>Menú</a>
+</nav>
+
+<script>
+const CONSOLES = {{ consoles | tojson }};
+let _hackTitle = '', _hackConsole = '';
+
+function filterCat(cat, btn) {
+  document.querySelectorAll('.cat-tabs .tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.hack-card').forEach(c => {
+    c.classList.toggle('hidden', cat !== 'all' && c.dataset.cat !== cat);
+  });
+}
+
+function filterHacks(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('.hack-card').forEach(c => {
+    c.classList.toggle('hidden', q && !c.dataset.search.includes(q));
+  });
+}
+
+function addHack(title, console_) {
+  _hackTitle = title; _hackConsole = console_;
+  document.getElementById('hack-modal-title').textContent = `Añadir: ${title}`;
+  document.getElementById('modal-add-hack').style.display = 'flex';
+}
+function closeHackModal() {
+  document.getElementById('modal-add-hack').style.display = 'none';
+}
+async function confirmAddHack() {
+  const fd = new FormData();
+  fd.append('title', _hackTitle);
+  fd.append('console', _hackConsole);
+  fd.append('genre', 'Custom ROM');
+  const r = await fetch('/api/games', { method: 'POST', body: fd });
+  if (r.ok) {
+    closeHackModal();
+    const d = await r.json();
+    showToast(`✅ "${_hackTitle}" añadido a la biblioteca`);
+  }
+}
+
+let _tt;
+function showToast(msg) {
+  let t = document.getElementById('_toast');
+  if (!t) { t = document.createElement('div'); t.id='_toast'; t.style.cssText='position:fixed;bottom:80px;right:16px;z-index:100;background:#059669;color:#fff;padding:10px 18px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.4);'; document.body.appendChild(t); }
+  t.textContent = msg; t.style.display = 'block';
+  clearTimeout(_tt); _tt = setTimeout(() => t.style.display = 'none', 3000);
+}
+</script>
+</body>
+</html>

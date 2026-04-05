@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Archive — ROM Library</title>
+<link rel="stylesheet" href="/static/css/base.css">
+<style>
+  .page { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  .topbar-simple { background:#1a1a2e; border-bottom:1px solid #2d2d44; padding:12px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; flex-wrap:wrap; }
+  h1 { font-size:20px; font-weight:700; margin:0; }
+  @media(max-width:600px) { h1 { font-size:17px; } }
+
+  /* Stats bar */
+  .stats-row { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:24px; }
+  @media(min-width:480px) { .stats-row { grid-template-columns:repeat(4,1fr); } }
+  .stat-box { background:#1e1e32; border:1px solid #2d2d44; border-radius:12px; padding:14px; text-align:center; }
+  .stat-box .val { font-size:22px; font-weight:700; color:#818cf8; }
+  .stat-box .lbl { font-size:11px; color:#4b5563; margin-top:2px; }
+
+  /* Console tabs */
+  .console-tabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; }
+  .tab { padding:5px 14px; border-radius:999px; font-size:12px; cursor:pointer; border:1px solid #3d3d5c; background:transparent; color:#9ca3af; transition:all .15s; text-decoration:none; display:inline-block; }
+  .tab:hover { border-color:#6366f1; color:#c7d2fe; }
+  .tab.active { background:#312e81; border-color:#6366f1; color:#c7d2fe; }
+
+  /* ROM table */
+  .rom-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .rom-table th { text-align:left; padding:8px 12px; font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:#4b5563; border-bottom:1px solid #2d2d44; }
+  .rom-table td { padding:9px 12px; border-bottom:1px solid #1e1e32; vertical-align:middle; }
+  .rom-table tr:hover td { background:#1e1e32; }
+  .rom-title { font-weight:600; color:#e2e8f0; }
+  .rom-meta { font-size:11px; color:#4b5563; }
+  .rom-actions { display:flex; gap:6px; align-items:center; }
+
+  /* Collection cards */
+  .coll-grid { display:grid; gap:14px; grid-template-columns:1fr; margin-bottom:32px; }
+  @media(min-width:560px) { .coll-grid { grid-template-columns:repeat(2,1fr); } }
+  @media(min-width:900px) { .coll-grid { grid-template-columns:repeat(3,1fr); } }
+  .coll-card { background:#1e1e32; border:1px solid #2d2d44; border-radius:12px; padding:16px; transition:border-color .18s, transform .18s; }
+  .coll-card:hover { border-color:#6366f1; transform:translateY(-1px); }
+  .coll-card h3 { font-size:14px; font-weight:700; margin:0 0 4px; }
+  .coll-card p { font-size:12px; color:#6b7280; margin:0 0 10px; line-height:1.5; }
+  .coll-meta { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; }
+  .tag { font-size:10px; padding:2px 8px; border-radius:999px; font-weight:600; }
+  .tag-nointro { background:#1e3a5f; color:#93c5fd; }
+  .tag-redump  { background:#3b1f04; color:#fde68a; }
+  .tag-large   { background:#1c0a00; color:#fb923c; }
+  .tag-es      { background:#064e3b; color:#6ee7b7; }
+  .tag-free    { background:#064e3b; color:#6ee7b7; }
+  .section-title { font-size:15px; font-weight:700; color:#e2e8f0; margin:28px 0 14px; display:flex; align-items:center; gap:8px; }
+  .empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:48px 16px; color:#374151; text-align:center; gap:8px; }
+  .search-box { display:flex; gap:8px; margin-bottom:20px; }
+  .hidden { display:none !important; }
+
+  /* Owned ROMs table */
+  .owned-section { margin-bottom:40px; }
+  .console-group { margin-bottom:24px; }
+  .console-group-header { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #2d2d44; margin-bottom:2px; }
+  .console-group-header span { font-size:13px; font-weight:700; color:#a5b4fc; }
+  .console-group-header .cnt { font-size:11px; background:#1e1b4b; color:#a5b4fc; padding:1px 8px; border-radius:999px; }
+  .console-group-header .sz { font-size:11px; color:#4b5563; margin-left:auto; }
+</style>
+</head>
+<body style="padding-bottom:80px;">
+
+<div class="topbar-simple">
+  <a href="/" style="color:#818cf8;text-decoration:none;font-size:18px;line-height:1;">←</a>
+  <h1>📦 Archive de ROMs</h1>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <a href="/sources" class="btn btn-gray btn-sm">🌐 Fuentes</a>
+    <a href="/custom-roms" class="btn btn-gray btn-sm">🛠️ Custom ROMs</a>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- Stats -->
+  <div class="stats-row" id="stats-row">
+    <div class="stat-box"><div class="val" id="s-total">–</div><div class="lbl">Total ROMs</div></div>
+    <div class="stat-box"><div class="val" id="s-owned">–</div><div class="lbl">Descargados</div></div>
+    <div class="stat-box"><div class="val" id="s-consoles">{{ consoles | length }}</div><div class="lbl">Consolas</div></div>
+    <div class="stat-box"><div class="val" id="s-size">–</div><div class="lbl">En disco</div></div>
+  </div>
+
+  <!-- Console tabs -->
+  <div class="console-tabs">
+    <a href="/archive" class="tab {{ 'active' if not selected_console else '' }}">Todas</a>
+    {% for c in consoles %}
+    {% if console_counts.get(c, 0) > 0 %}
+    <a href="/archive?console={{ c }}" class="tab {{ 'active' if selected_console == c else '' }}">
+      {{ c }} <span style="font-size:10px;opacity:.7;">{{ console_counts.get(c, 0) }}</span>
+    </a>
+    {% endif %}
+    {% endfor %}
+  </div>
+
+  <!-- Owned ROMs section -->
+  <div class="owned-section">
+    <div class="section-title">✅ Tu biblioteca local</div>
+
+    {% if not games %}
+    <div class="empty-state">
+      <div style="font-size:40px;">📭</div>
+      <div style="font-size:15px;font-weight:600;">Nada descargado{% if selected_console %} para {{ selected_console }}{% endif %}</div>
+      <div style="font-size:13px;">Descarga ROMs desde la <a href="/" style="color:#818cf8;">página principal</a></div>
+    </div>
+    {% else %}
+
+    <div class="search-box">
+      <input type="text" class="inp" id="search-local" placeholder="Buscar en tu biblioteca…" oninput="filterLocal(this.value)">
+    </div>
+
+    <table class="rom-table" id="local-table">
+      <thead>
+        <tr>
+          <th>Juego</th>
+          <th class="hide-sm">Consola</th>
+          <th class="hide-sm">Año</th>
+          <th>Tamaño</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for g in games %}
+        <tr data-title="{{ g.title | lower }}" data-console="{{ g.console | lower }}">
+          <td>
+            <div class="rom-title">{{ g.title }}</div>
+            <div class="rom-meta">{{ g.console }} · {{ g.region or 'ES' }}</div>
+          </td>
+          <td class="hide-sm" style="color:#818cf8;font-size:12px;">{{ g.console }}</td>
+          <td class="hide-sm" style="color:#4b5563;font-size:12px;">{{ g.year or '–' }}</td>
+          <td style="font-size:12px;color:#6ee7b7;white-space:nowrap;">{{ g.file_size | format_size if g.file_size else '–' }}</td>
+          <td>
+            <div class="rom-actions">
+              {% if g.file_path %}
+              <span style="font-size:11px;color:#059669;">📁</span>
+              {% endif %}
+              <button onclick="openGame({{ g.id }})" class="btn btn-gray btn-sm" style="padding:3px 8px;">Ver</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+
+  <!-- Collections section -->
+  <div class="section-title">🗂️ Colecciones disponibles en la red</div>
+  <p style="font-size:12px;color:#4b5563;margin-bottom:20px;">Sets No-Intro y Redump disponibles públicamente. Copia la URL del archivo y pégala en ROM Library para descargar.</p>
+
+  <div class="coll-grid">
+
+    <div class="coll-card">
+      <h3>🎮 PSP (No-Intro / Redump)</h3>
+      <p>Colección completa de ISOs de PSP. Más de 1.400 juegos de todas las regiones incluyendo España.</p>
+      <div class="coll-meta">
+        <span class="tag tag-redump">Redump</span>
+        <span class="tag tag-es">España</span>
+        <span class="tag tag-large">~200 GB</span>
+      </div>
+      <a href="https://archive.org/search?query=PSP+ROM+No-Intro" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">Buscar en Archive.org</a>
+    </div>
+
+    <div class="coll-card">
+      <h3>📺 Nintendo DS (No-Intro)</h3>
+      <p>Set completo No-Intro de NDS. Más de 6.000 ROMs verificadas con checksums.</p>
+      <div class="coll-meta">
+        <span class="tag tag-nointro">No-Intro</span>
+        <span class="tag tag-large">~50 GB</span>
+      </div>
+      <a href="https://archive.org/search?query=Nintendo+DS+No-Intro" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">Buscar en Archive.org</a>
+    </div>
+
+    <div class="coll-card">
+      <h3>🕹️ Game Boy Advance (No-Intro)</h3>
+      <p>Set No-Intro de GBA. ~2.800 juegos. Ideal para emuladores portátiles.</p>
+      <div class="coll-meta">
+        <span class="tag tag-nointro">No-Intro</span>
+        <span class="tag tag-large">~18 GB</span>
+      </div>
+      <a href="https://archive.org/search?query=GBA+No-Intro+Game+Boy+Advance" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">Buscar en Archive.org</a>
+    </div>
+
+    <div class="coll-card">
+      <h3>🎯 SNES (No-Intro)</h3>
+      <p>Super Nintendo completo. Más de 3.000 títulos de todas las regiones.</p>
+      <div class="coll-meta">
+        <span class="tag tag-nointro">No-Intro</span>
+        <span class="tag tag-large">~5 GB</span>
+      </div>
+      <a href="https://archive.org/search?query=SNES+No-Intro+Super+Nintendo" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">Buscar en Archive.org</a>
+    </div>
+
+    <div class="coll-card">
+      <h3>🎮 PlayStation 1 (Redump)</h3>
+      <p>ISOs PS1 verificadas con Redump. Muchos juegos en castellano disponibles.</p>
+      <div class="coll-meta">
+        <span class="tag tag-redump">Redump</span>
+        <span class="tag tag-es">España</span>
+        <span class="tag tag-large">~300 GB</span>
+      </div>
+      <a href="https://archive.org/search?query=PlayStation+1+Redump+Spain" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">Buscar en Archive.org</a>
+    </div>
+
+    <div class="coll-card">
+      <h3>🎮 PlayStation 2 (Redump)</h3>
+      <p>ISOs PS2 verificadas. La colección completa supera 1 TB pero se pueden descargar títulos sueltos.</p>
+      <div class="coll-meta">
+        <span class="tag tag-redump">Redump</span>
+        <span class="tag tag-large">~1 TB total</span>
+      </div>
+      <a href="https://archive.org/search?query=PlayStation+2+Redump" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">Buscar en Archive.org</a>
+    </div>
+
+    <div class="coll-card">
+      <h3>🏆 Nintendo 64 (No-Intro)</h3>
+      <p>Set completo N64. ~800 títulos. Buen ratio calidad/tamaño.</p>
+      <div class="coll-meta">
+        <span class="tag tag-nointro">No-Intro</span>
+        <span class="tag tag-large">~4 GB</span>
+      </div>
+      <a href="https://archive.org/search?query=Nintendo+64+No-Intro" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">Buscar en Archive.org</a>
+    </div>
+
+    <div class="coll-card">
+      <h3>📺 Nintendo 3DS (No-Intro)</h3>
+      <p>ROMs 3DS en formato .3ds y .cia. Incluye juegos exclusivos de Europa y España.</p>
+      <div class="coll-meta">
+        <span class="tag tag-nointro">No-Intro</span>
+        <span class="tag tag-es">España</span>
+        <span class="tag tag-large">~100 GB</span>
+      </div>
+      <a href="https://archive.org/search?query=3DS+No-Intro+Nintendo" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">Buscar en Archive.org</a>
+    </div>
+
+    <div class="coll-card">
+      <h3>🎲 GameCube (Redump)</h3>
+      <p>ISOs GameCube verificadas. Incluye juegos exclusivos PAL de gran calidad.</p>
+      <div class="coll-meta">
+        <span class="tag tag-redump">Redump</span>
+        <span class="tag tag-large">~600 GB</span>
+      </div>
+      <a href="https://archive.org/search?query=GameCube+Redump" target="_blank" rel="noopener" class="btn btn-indigo btn-sm">Buscar en Archive.org</a>
+    </div>
+
+  </div>
+
+  <!-- Myrient note -->
+  <div style="background:#12122a;border:1px solid #2d2d44;border-radius:12px;padding:18px;margin-bottom:32px;">
+    <div style="font-size:14px;font-weight:700;color:#c7d2fe;margin-bottom:8px;">🌐 Otras fuentes recomendadas</div>
+    <div style="display:grid;gap:10px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;">
+        <span style="font-size:20px;flex-shrink:0;">🔷</span>
+        <div>
+          <div style="font-weight:600;font-size:13px;">Myrient</div>
+          <div style="font-size:12px;color:#6b7280;">Sets No-Intro y Redump completos, descargas directas rápidas sin registro.</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:12px;">
+        <span style="font-size:20px;flex-shrink:0;">🔶</span>
+        <div>
+          <div style="font-weight:600;font-size:13px;">r/Roms Megathread</div>
+          <div style="font-size:12px;color:#6b7280;">Índice de fuentes actualizado por la comunidad. Busca en Reddit.</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:12px;">
+        <span style="font-size:20px;flex-shrink:0;">🔴</span>
+        <div>
+          <div style="font-weight:600;font-size:13px;">HydraVista / CDRomance</div>
+          <div style="font-size:12px;color:#6b7280;">Juegos en español para PSP, PS1, DS, GBA. Descarga directa.</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid #2d2d44;">
+      <a href="/sources" style="color:#818cf8;font-size:13px;text-decoration:none;">Ver todas las fuentes detalladas →</a>
+    </div>
+  </div>
+
+</div>
+
+<!-- Bottom nav (mobile) -->
+<nav class="bottom-nav">
+  <a href="/"><span class="icon">🎮</span>Juegos</a>
+  <a href="/archive" class="active"><span class="icon">📦</span>Archive</a>
+  <a href="/custom-roms"><span class="icon">🛠️</span>Custom</a>
+  <a href="/sources"><span class="icon">🌐</span>Fuentes</a>
+  <a href="/" onclick="setTimeout(()=>document.querySelector('.hamburger')&&openSidebar(),100)"><span class="icon">☰</span>Menú</a>
+</nav>
+
+<script>
+function $id(id){ return document.getElementById(id); }
+function fmtSize(b){ if(!b)return'?'; const u=['B','KB','MB','GB']; let i=0; while(b>=1024&&i<3){b/=1024;i++;} return`${b.toFixed(1)} ${u[i]}`; }
+
+// Load stats
+async function loadStats(){
+  const s = await fetch('/api/stats').then(r=>r.json());
+  $id('s-total').textContent = s.total;
+  $id('s-owned').textContent = s.by_status.owned || 0;
+  $id('s-size').textContent = fmtSize(s.disk.total_size);
+}
+loadStats();
+
+// Game detail modal (reuse same pattern)
+async function openGame(id){
+  const g = await fetch(`/api/games/${id}`).then(r=>r.json());
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  alert(`${g.title}\n${g.console} · ${g.year||'–'}\n${g.file_path||'sin archivo local'}`);
+}
+
+// Filter local table
+function filterLocal(q){
+  const rows = document.querySelectorAll('#local-table tbody tr');
+  q = q.toLowerCase();
+  rows.forEach(r => {
+    const match = r.dataset.title.includes(q) || r.dataset.console.includes(q);
+    r.classList.toggle('hidden', !match);
+  });
+}
+</script>
+</body>
+</html>

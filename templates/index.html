@@ -57,6 +57,8 @@
       <a href="/?status={{ s }}" class="nav-link {{ 'active' if selected_status == s else '' }}">{{ label }}</a>
       {% endfor %}
       <div class="sect-label">Páginas</div>
+      <a href="/archive" class="nav-link">📦 Archive</a>
+      <a href="/custom-roms" class="nav-link">🛠️ Custom ROMs</a>
       <a href="/sources" class="nav-link">🌐 Fuentes de ROMs</a>
     </nav>
     <div class="sidebar-footer" style="display:flex;flex-direction:column;gap:4px;">
@@ -149,10 +151,10 @@
 
 <!-- ── Bottom nav (mobile) ──────────────────────────────────────────────────── -->
 <nav class="bottom-nav">
-  <button onclick="openSidebar()"><span class="icon">☰</span>Menú</button>
-  <a href="/"><span class="icon">🎮</span>Juegos</a>
+  <a href="/" class="active"><span class="icon">🎮</span>Juegos</a>
+  <a href="/archive"><span class="icon">📦</span>Archive</a>
   <button onclick="openQuick()"><span class="icon">⬇️</span>Descargar</button>
-  <a href="/sources"><span class="icon">🌐</span>Fuentes</a>
+  <a href="/custom-roms"><span class="icon">🛠️</span>Custom</a>
   <button onclick="openDownloads()" id="dl-btn-mobile"><span class="icon">📋</span>Cola</button>
 </nav>
 
