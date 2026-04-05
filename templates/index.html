@@ -57,11 +57,12 @@
       <a href="/?status={{ s }}" class="nav-link {{ 'active' if selected_status == s else '' }}">{{ label }}</a>
       {% endfor %}
       <div class="sect-label">Páginas</div>
+      <a href="/browse" class="nav-link" style="background:#065f46;color:#6ee7b7;margin-bottom:2px;">🔍 Buscar ROMs</a>
       <a href="/archive" class="nav-link">📦 Archive</a>
       <a href="/wishlist" class="nav-link">⭐ Wishlist</a>
       <a href="/stats" class="nav-link">📊 Stats</a>
       <a href="/custom-roms" class="nav-link">🛠️ Custom ROMs</a>
-      <a href="/sources" class="nav-link">🌐 Fuentes de ROMs</a>
+      <a href="/sources" class="nav-link">🌐 Fuentes</a>
     </nav>
     <div class="sidebar-footer" style="display:flex;flex-direction:column;gap:4px;">
       <button onclick="window.location='/stats'" style="width:100%;text-align:left;font-size:12px;background:#1e1e32;border:none;color:#9ca3af;border-radius:7px;padding:7px 10px;cursor:pointer;">📊 Stats completos</button>
@@ -195,9 +196,9 @@
 <!-- ── Bottom nav (mobile) ──────────────────────────────────────────────────── -->
 <nav class="bottom-nav">
   <a href="/" class="active"><span class="icon">🎮</span>Juegos</a>
+  <a href="/browse"><span class="icon">🔍</span>Buscar</a>
+  <button onclick="openQuick()"><span class="icon">⬇️</span>URL</button>
   <a href="/wishlist"><span class="icon">⭐</span>Wishlist</a>
-  <button onclick="openQuick()"><span class="icon">⬇️</span>Descargar</button>
-  <a href="/stats"><span class="icon">📊</span>Stats</a>
   <button onclick="openDownloads()" id="dl-btn-mobile"><span class="icon">📋</span>Cola</button>
 </nav>
 
@@ -325,7 +326,8 @@
 
 <script>
 const CONSOLES = {{ consoles | tojson }};
-const SL = { owned:'✅ Tengo', downloading:'⬇️ Descargando', queued:'🕐 En cola', pending:'⏳ Pendiente', failed:'❌ Error' };
+const RA_ENABLED = {{ 'true' if ra_enabled() else 'false' }};
+const SL = { owned:'✅ Tengo', downloading:'⬇️ Descargando', queued:'🕐 En cola', pending:'⏳ Pendiente', failed:'❌ Error', wishlist:'⭐ Wishlist' };
 
 function $id(id) { return document.getElementById(id); }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -468,7 +470,7 @@ async function openGame(id){
       ${g.status==='owned'?`<button onclick="startPlay(${g.id})" class="btn btn-green btn-sm" id="btn-play-${g.id}">▶ Jugar</button>`:''}
       <button onclick="editGame(${g.id})" class="btn btn-indigo btn-sm">✏️ Editar</button>
       ${g.download_url&&g.status!=='owned'?`<button onclick="retryDl(${g.id})" class="btn btn-green btn-sm">⬇️ Re-descargar</button>`:''}
-      ${!g.ra_game_id&&{% if ra_enabled() %}true{% else %}false{% endif %}?`<button onclick="syncRA(${g.id})" class="btn btn-gray btn-sm">🏆 Sync RA</button>`:''}
+      ${!g.ra_game_id&&RA_ENABLED?`<button onclick="syncRA(${g.id})" class="btn btn-gray btn-sm">🏆 Sync RA</button>`:''}
       <button onclick="delGame(${g.id})" class="btn btn-red btn-sm">🗑️ Borrar</button>
     </div>`;
 }

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Buscar ROMs — ROM Library</title>
+<link rel="stylesheet" href="/static/css/base.css">
+<style>
+  body { padding-bottom: 80px; }
+  .topbar-simple { background:#1a1a2e; border-bottom:1px solid #2d2d44; padding:10px 16px; display:flex; align-items:center; gap:10px; position:sticky; top:0; z-index:20; flex-wrap:wrap; }
+  h1 { font-size:18px; font-weight:700; margin:0; }
+  .page { max-width:1100px; margin:0 auto; padding:12px 16px; }
+
+  /* Console selector */
+  .console-pills { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+  .pill { padding:6px 14px; border-radius:999px; font-size:12px; cursor:pointer; border:1px solid #3d3d5c; background:transparent; color:#9ca3af; transition:all .15s; text-decoration:none; display:inline-block; }
+  .pill:hover { border-color:#6366f1; color:#c7d2fe; }
+  .pill.active { background:#312e81; border-color:#6366f1; color:#c7d2fe; font-weight:600; }
+
+  /* Collections row */
+  .coll-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+  .coll-btn { padding:6px 14px; border-radius:8px; font-size:12px; cursor:pointer; border:1px solid #3d3d5c; background:#1e1e32; color:#9ca3af; transition:all .15s; }
+  .coll-btn:hover { border-color:#818cf8; color:#c7d2fe; }
+  .coll-btn.active { background:#312e81; border-color:#818cf8; color:#c7d2fe; }
+
+  /* Search bar */
+  .search-row { display:flex; gap:8px; margin-bottom:16px; }
+  .search-row input { flex:1; }
+
+  /* ROM table */
+  .rom-table { width:100%; border-collapse:collapse; }
+  .rom-table th { text-align:left; padding:8px 12px; font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:#4b5563; border-bottom:1px solid #2d2d44; white-space:nowrap; }
+  .rom-table td { padding:8px 12px; border-bottom:1px solid #1e1e32; vertical-align:middle; font-size:13px; }
+  .rom-table tr:hover td { background:#1e1e32; }
+  .rom-title { font-weight:600; color:#e2e8f0; }
+  .rom-meta  { font-size:11px; color:#4b5563; margin-top:2px; }
+
+  /* Status col */
+  .dl-status { font-size:11px; color:#4b5563; white-space:nowrap; }
+
+  /* Skeleton loader */
+  .skel { background:linear-gradient(90deg,#1e1e32 25%,#2d2d44 50%,#1e1e32 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:4px; height:14px; }
+  @keyframes shimmer { 0%{background-position:200%}100%{background-position:-200%} }
+  .skel-row { padding:10px 12px; border-bottom:1px solid #1e1e32; display:flex; gap:12px; }
+  .skel-row .skel:first-child { flex:3; }
+  .skel-row .skel:last-child  { flex:1; }
+
+  /* Empty / error */
+  .state-msg { text-align:center; padding:48px 16px; color:#4b5563; }
+  .state-msg .icon { font-size:40px; display:block; margin-bottom:10px; }
+
+  /* Progress inline */
+  .dl-progress { width:80px; height:5px; background:#1e3a5f; border-radius:3px; overflow:hidden; display:inline-block; vertical-align:middle; margin-left:6px; }
+  .dl-progress-fill { height:100%; background:#3b82f6; transition:width .6s; }
+
+  /* Toast */
+  #toast { position:fixed; bottom:72px; right:16px; z-index:100; }
+  @media(min-width:1024px) { #toast { bottom:20px; right:20px; } }
+</style>
+</head>
+<body>
+
+<div class="topbar-simple">
+  <a href="/" style="color:#818cf8;text-decoration:none;font-size:18px;line-height:1;">←</a>
+  <h1>🔍 Buscar ROMs</h1>
+  <div style="margin-left:auto;font-size:12px;color:#4b5563;">Archive.org</div>
+</div>
+
+<div class="page">
+
+  <!-- Console selector -->
+  <div class="console-pills" style="margin-top:12px;">
+    {% for c in consoles %}
+    <a href="/browse?console={{ c }}" class="pill {{ 'active' if selected_console == c else '' }}">{{ c }}</a>
+    {% endfor %}
+  </div>
+
+  <!-- Search in Archive.org globally -->
+  <div class="search-row">
+    <input id="search-input" class="inp" placeholder="Buscar juego por nombre… (ej: Mario, Zelda, Gran Turismo)" style="font-size:14px;">
+    <button onclick="doSearch()" class="btn btn-indigo btn-sm">Buscar</button>
+    <button onclick="clearSearch()" class="btn btn-gray btn-sm" id="btn-clear" style="display:none;">✕</button>
+  </div>
+
+  <!-- Collections from Archive.org -->
+  {% if collections %}
+  <div style="font-size:11px;color:#4b5563;margin-bottom:8px;">Colecciones disponibles para <strong style="color:#a5b4fc;">{{ selected_console }}</strong>:</div>
+  <div class="coll-row" id="coll-row">
+    {% for col in collections %}
+    <button class="coll-btn {{ 'active' if loop.first else '' }}"
+            onclick="loadCollection('{{ col.id }}', this)"
+            data-id="{{ col.id }}">
+      {{ col.name }}
+    </button>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="state-msg"><span class="icon">📭</span>No hay colecciones configuradas para {{ selected_console }}</div>
+  {% endif %}
+
+  <!-- ROM list -->
+  <div id="rom-container">
+    {% if collections %}
+    <!-- skeleton while loading -->
+    <div id="skeleton">
+      {% for i in range(12) %}
+      <div class="skel-row"><div class="skel"></div><div class="skel"></div></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <table class="rom-table" id="rom-table" style="display:none;">
+      <thead>
+        <tr>
+          <th>Juego</th>
+          <th class="hide-sm">Tamaño</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="rom-body"></tbody>
+    </table>
+    <div id="rom-msg" class="state-msg" style="display:none;"></div>
+  </div>
+
+  <!-- Search results (Archive.org items) -->
+  <div id="search-results" style="display:none;"></div>
+
+</div>
+
+<!-- Toast -->
+<div id="toast" style="display:none;">
+  <div id="toast-msg" style="padding:10px 18px;border-radius:12px;font-size:13px;font-weight:600;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.4);"></div>
+</div>
+
+<script>
+const CONSOLE = '{{ selected_console }}';
+let _allRoms = [];
+let _filterStr = '';
+let _dlStatus = {};  // url → {status, progress}
+
+function $id(id) { return document.getElementById(id); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtSize(b) {
+  if(!b)return'?';
+  const u=['B','KB','MB','GB']; let i=0;
+  while(b>=1024&&i<3){b/=1024;i++;}
+  return`${b.toFixed(1)} ${u[i]}`;
+}
+
+let _tt;
+function toast(msg, color='#6366f1') {
+  const t=$id('toast'), m=$id('toast-msg');
+  m.textContent=msg; m.style.background=color;
+  t.style.display='block'; clearTimeout(_tt);
+  _tt=setTimeout(()=>t.style.display='none', 4000);
+}
+
+// ── Load collection ───────────────────────────────────────────────────────────
+async function loadCollection(identifier, btn) {
+  document.querySelectorAll('.coll-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  $id('search-results').style.display='none';
+  $id('rom-table').style.display='none';
+  $id('rom-msg').style.display='none';
+  $id('skeleton').style.display='block';
+
+  const r = await fetch(`/api/browse/files?identifier=${encodeURIComponent(identifier)}&console=${encodeURIComponent(CONSOLE)}`);
+  const files = await r.json();
+  $id('skeleton').style.display='none';
+
+  if(!files.length || files[0]?.error) {
+    $id('rom-msg').style.display='block';
+    $id('rom-msg').innerHTML=`<span class="icon">😕</span>No se pudieron cargar los archivos${files[0]?.error?' — '+esc(files[0].error):''}`;
+    return;
+  }
+
+  _allRoms = files;
+  renderRoms(_filterStr);
+}
+
+function renderRoms(filter) {
+  const filtered = filter
+    ? _allRoms.filter(r => r.title.toLowerCase().includes(filter.toLowerCase()) || r.filename.toLowerCase().includes(filter.toLowerCase()))
+    : _allRoms;
+
+  if(!filtered.length) {
+    $id('rom-table').style.display='none';
+    $id('rom-msg').style.display='block';
+    $id('rom-msg').innerHTML='<span class="icon">🔎</span>Sin resultados para "<strong>'+esc(filter)+'</strong>"';
+    return;
+  }
+
+  $id('rom-msg').style.display='none';
+  $id('rom-table').style.display='table';
+
+  $id('rom-body').innerHTML = filtered.map(rom => {
+    const st = _dlStatus[rom.url];
+    let actionHtml;
+    if(st?.status === 'downloading' || st?.status === 'queued') {
+      actionHtml = `<button class="btn btn-gray btn-sm" disabled>
+        ${st.status==='downloading'?'⬇️':'🕐'} ${st.progress||0}%
+        <span class="dl-progress"><span class="dl-progress-fill" style="width:${st.progress||0}%"></span></span>
+      </button>`;
+    } else if(st?.status === 'owned') {
+      actionHtml = `<span style="color:#6ee7b7;font-size:12px;">✅ Descargado</span>`;
+    } else {
+      actionHtml = `<button onclick="downloadRom(${JSON.stringify(esc(rom.url))},${JSON.stringify(esc(rom.title))},this)" class="btn btn-green btn-sm">⬇️ Descargar</button>`;
+    }
+    return `<tr>
+      <td>
+        <div class="rom-title">${esc(rom.title)}</div>
+        <div class="rom-meta">${esc(rom.filename)}</div>
+      </td>
+      <td class="hide-sm" style="color:#4b5563;white-space:nowrap;">${fmtSize(rom.size)}</td>
+      <td>${actionHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Download ROM ──────────────────────────────────────────────────────────────
+async function downloadRom(url, title, btn) {
+  btn.disabled = true;
+  btn.textContent = '⏳ Añadiendo…';
+  const fd = new FormData();
+  fd.append('url', url);
+  fd.append('title', title);
+  fd.append('console', CONSOLE);
+  const r = await fetch('/api/browse/download', { method: 'POST', body: fd });
+  if(r.ok) {
+    const d = await r.json();
+    _dlStatus[url] = { status: 'queued', progress: 0, game_id: d.id };
+    btn.closest('tr').querySelector('td:last-child').innerHTML =
+      `<button class="btn btn-gray btn-sm" disabled>🕐 En cola…</button>`;
+    toast(`⬇️ "${title}" — buscando carátula…`, '#059669');
+    pollDownload(url, d.id, title);
+  } else {
+    btn.disabled = false;
+    btn.textContent = '⬇️ Descargar';
+    toast('❌ Error al añadir', '#dc2626');
+  }
+}
+
+// ── Poll download progress ────────────────────────────────────────────────────
+async function pollDownload(url, gameId, title) {
+  const interval = setInterval(async () => {
+    try {
+      const g = await fetch(`/api/games/${gameId}`).then(r=>r.json());
+      _dlStatus[url] = { status: g.status, progress: 0 };
+
+      if(g.status === 'owned') {
+        clearInterval(interval);
+        toast(`✅ "${title}" descargado`, '#059669');
+        renderRoms(_filterStr);
+        return;
+      }
+      if(g.status === 'failed') {
+        clearInterval(interval);
+        delete _dlStatus[url];
+        toast(`❌ Error descargando "${title}"`, '#dc2626');
+        renderRoms(_filterStr);
+        return;
+      }
+
+      // Get progress from active downloads
+      const active = await fetch('/api/downloads/active').then(r=>r.json());
+      const dl = active.find(d => d.game_id === gameId);
+      if(dl) {
+        _dlStatus[url] = { status: 'downloading', progress: dl.progress || 0, game_id: gameId };
+        renderRoms(_filterStr);
+      }
+    } catch {}
+  }, 3000);
+}
+
+// ── Live search filter ────────────────────────────────────────────────────────
+$id('search-input').addEventListener('input', e => {
+  _filterStr = e.target.value.trim();
+  if(_allRoms.length) {
+    // Local filter within loaded collection
+    renderRoms(_filterStr);
+  }
+  $id('btn-clear').style.display = _filterStr ? 'inline-flex' : 'none';
+});
+
+$id('search-input').addEventListener('keydown', e => {
+  if(e.key === 'Enter') doSearch();
+});
+
+function clearSearch() {
+  $id('search-input').value = '';
+  _filterStr = '';
+  $id('btn-clear').style.display = 'none';
+  $id('search-results').style.display = 'none';
+  if(_allRoms.length) renderRoms('');
+}
+
+// ── Global Archive.org search ─────────────────────────────────────────────────
+async function doSearch() {
+  const q = $id('search-input').value.trim();
+  if(!q) return;
+  _filterStr = q;
+  $id('btn-clear').style.display = 'inline-flex';
+
+  if(_allRoms.length) {
+    // Filter locally first
+    renderRoms(q);
+  }
+
+  // Also search Archive.org globally
+  const el = $id('search-results');
+  el.style.display = 'block';
+  el.innerHTML = '<div style="color:#4b5563;font-size:13px;padding:12px 0;">Buscando en Archive.org…</div>';
+
+  const res = await fetch(`/api/browse/search?q=${encodeURIComponent(q)}&console=${encodeURIComponent(CONSOLE)}`).then(r=>r.json());
+  if(!res.length) {
+    el.innerHTML = '<div style="color:#4b5563;font-size:13px;padding:12px 0;">Sin resultados adicionales en Archive.org.</div>';
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="font-size:11px;color:#4b5563;text-transform:uppercase;letter-spacing:.08em;padding:12px 0 8px;">
+      También encontrado en Archive.org:
+    </div>
+    <div style="display:grid;gap:8px;">
+      ${res.map(item => `
+        <div style="background:#1e1e32;border:1px solid #2d2d44;border-radius:10px;padding:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+          <div style="min-width:0;flex:1;">
+            <div style="font-size:13px;font-weight:600;color:#e2e8f0;margin-bottom:2px;">${esc(item.title)}</div>
+            <div style="font-size:11px;color:#4b5563;">${esc(item.description)}</div>
+            <code style="font-size:10px;color:#6b7280;">${esc(item.identifier)}</code>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button onclick="loadFromItem('${esc(item.identifier)}',this)" class="btn btn-indigo btn-sm">Ver ROMs</button>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+async function loadFromItem(identifier, btn) {
+  btn.textContent = '⏳…';
+  btn.disabled = true;
+  document.querySelectorAll('.coll-btn').forEach(b=>b.classList.remove('active'));
+  $id('search-results').style.display = 'none';
+  await loadCollection(identifier, null);
+  btn.textContent = 'Ver ROMs';
+  btn.disabled = false;
+}
+
+// ── Auto-load first collection ────────────────────────────────────────────────
+const firstColl = document.querySelector('.coll-btn');
+if(firstColl) {
+  loadCollection(firstColl.dataset.id, firstColl);
+} else {
+  $id('skeleton').style.display = 'none';
+}
+</script>
+</body>
+</html>

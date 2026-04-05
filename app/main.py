@@ -24,6 +24,7 @@ from .downloader import (
 from .metadata import fetch_metadata, is_igdb_configured, search_covers
 from .watcher import start_watcher, get_status as watcher_status
 from .retroachievements import is_configured as ra_configured, search_game as ra_search, get_game_achievements
+from .rom_store import ARCHIVE_COLLECTIONS, get_collection_files, search_archive_global
 
 BASE_DIR = Path(__file__).parent.parent
 ROMS_PATH = Path.home() / "roms"
@@ -33,6 +34,7 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 app.mount("/covers", StaticFiles(directory=BASE_DIR / "covers"), name="covers")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 templates.env.globals["format_size"] = format_size
+templates.env.filters["format_size"] = format_size
 
 _CONSOLE_EMOJI = {
     "PSP": "🎮", "PSVita": "🎮", "NintendoDS": "📺", "Nintendo3DS": "📺",
@@ -64,6 +66,7 @@ def _format_playtime(seconds: int) -> str:
 
 
 templates.env.globals["format_playtime"] = _format_playtime
+templates.env.filters["format_playtime"] = _format_playtime
 
 
 @app.on_event("startup")
@@ -454,3 +457,51 @@ async def api_cover_search(q: str, console: str = ""):
 @app.get("/api/watcher/status")
 async def api_watcher_status():
     return watcher_status()
+
+
+# ── ROM Store / Browse ──────────────────────────────────────────────────────────
+
+@app.get("/browse", response_class=HTMLResponse)
+async def browse(request: Request, console: str = "NintendoDS"):
+    collections = ARCHIVE_COLLECTIONS.get(console, [])
+    return templates.TemplateResponse("browse.html", {
+        "request": request,
+        "consoles": CONSOLES,
+        "selected_console": console,
+        "collections": collections,
+        "total": sum(get_console_counts().values()),
+        "has_igdb": is_igdb_configured(),
+    })
+
+
+@app.get("/api/browse/files")
+async def api_browse_files(identifier: str, console: str):
+    files = await get_collection_files(identifier, console)
+    return files
+
+
+@app.get("/api/browse/search")
+async def api_browse_search(q: str, console: str):
+    return await search_archive_global(q, console)
+
+
+@app.post("/api/browse/download")
+async def api_browse_download(
+    background_tasks: BackgroundTasks,
+    url: str = Form(...),
+    title: str = Form(...),
+    console: str = Form(...),
+):
+    """Add a ROM from the browser to the download queue + auto-fetch metadata."""
+    disc_group, disc_number = get_disc_group(title)
+    game_id = add_game(
+        title=title,
+        console=console,
+        region="EU",
+        download_url=url,
+        disc_number=disc_number,
+        disc_group=disc_group if disc_number else None,
+    )
+    background_tasks.add_task(download_rom, game_id, url, console)
+    background_tasks.add_task(fetch_metadata, game_id, title, console)
+    return {"id": game_id, "title": title, "console": console, "status": "queued"}
