@@ -67,6 +67,7 @@ body { background: #0f0f1a; color: #e2e8f0; font-family: system-ui, -apple-syste
 .badge-downloading, .badge-queued { background: #1e3a5f; color: #60a5fa; }
 .badge-pending    { background: #3b1f04; color: #fbbf24; }
 .badge-failed     { background: #4c0519; color: #f87171; }
+.badge-wishlist   { background: #78350f; color: #fcd34d; }
 
 /* ── Inputs ───────────────────────────────────────────────────────────────── */
 .inp {
@@ -258,3 +259,45 @@ textarea.inp { resize: vertical; }
   transition: opacity 0.3s;
 }
 @media (min-width: 1024px) { #toast { bottom: 20px; right: 20px; } }
+
+/* ── Light theme ──────────────────────────────────────────────────────────── */
+body.light {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+body.light .sidebar { background: #fff; border-color: #e2e8f0; }
+body.light .card { background: #fff; border-color: #e2e8f0; }
+body.light .card:hover { border-color: #6366f1; }
+body.light .topbar { background: #fff; border-color: #e2e8f0; }
+body.light .modal-box { background: #fff; border-color: #e2e8f0; }
+body.light .inp { background: #f8fafc; border-color: #cbd5e1; color: #1e293b; }
+body.light select.inp option { background: #fff; }
+body.light .nav-link { color: #475569; }
+body.light .nav-link:hover { background: #f1f5f9; }
+body.light .nav-link.active { background: #eef2ff; color: #4f46e5; }
+body.light .btn-gray { background: #e2e8f0; color: #475569; }
+body.light .progress-bar { background: #e2e8f0; }
+body.light .games-list th { color: #94a3b8; border-color: #e2e8f0; }
+body.light .games-list td { border-color: #f1f5f9; }
+body.light .games-list tr:hover td { background: #f8fafc; }
+body.light .bottom-nav { background: #fff; border-color: #e2e8f0; }
+body.light .bottom-nav a, body.light .bottom-nav button { color: #94a3b8; }
+body.light .stat-bar { background: #e2e8f0; }
+body.light .quick-zone { background: #f8fafc; border-color: #cbd5e1; }
+body.light .cover-ph { background: linear-gradient(135deg, #e2e8f0, #f1f5f9); }
+body.light #toast-msg { }
+
+/* ── Multi-disc badge ─────────────────────────────────────────────────────── */
+.badge-disc { background: #1c1917; color: #a8a29e; font-size: 9px; padding: 1px 5px; }
+
+/* ── RA badge ─────────────────────────────────────────────────────────────── */
+.badge-ra { background: #1c1917; color: #fb923c; }
+
+/* ── Mobile touch improvements ────────────────────────────────────────────── */
+@media (max-width: 1023px) {
+  .card { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  .btn { min-height: 40px; }
+  .btn-sm { min-height: 34px; }
+  .inp { font-size: 16px; } /* prevent zoom on focus in iOS */
+  .bottom-nav a, .bottom-nav button { padding: 8px 0; }
+}

@@ -1,7 +1,7 @@
 import re
 from pathlib import Path
 from urllib.parse import urlparse, unquote
-from .database import add_game, get_games
+from .database import add_game, get_games, get_disc_group
 
 CONSOLE_EXTENSIONS = {
     "PSP": [".iso", ".cso", ".pbp"],
@@ -62,13 +62,17 @@ def scan_directory(roms_path: Path) -> dict:
             continue
 
         console = detect_console_from_path(file)
-        title = file.stem.replace("_", " ").replace(".", " ").strip()
+        raw_title = file.stem.replace("_", " ").replace(".", " ").strip()
+        title = clean_title(file.name)
+        disc_group, disc_number = get_disc_group(title)
 
         add_game(
-            title=title,
+            title=title or raw_title,
             console=console,
             file_path=file_str,
             region=_detect_region(file.name),
+            disc_number=disc_number,
+            disc_group=disc_group if disc_number else None,
         )
         added += 1
 

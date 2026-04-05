@@ -53,18 +53,21 @@
       {% endfor %}
       {% endif %}
       <div class="sect-label">Estado</div>
-      {% for s, label in [('owned','✅ Tengo'),('downloading','⬇️ Descargando'),('queued','🕐 En cola'),('pending','⏳ Pendiente'),('failed','❌ Error')] %}
+      {% for s, label in [('owned','✅ Tengo'),('downloading','⬇️ Descargando'),('queued','🕐 En cola'),('pending','⏳ Pendiente'),('failed','❌ Error'),('wishlist','⭐ Wishlist')] %}
       <a href="/?status={{ s }}" class="nav-link {{ 'active' if selected_status == s else '' }}">{{ label }}</a>
       {% endfor %}
       <div class="sect-label">Páginas</div>
       <a href="/archive" class="nav-link">📦 Archive</a>
+      <a href="/wishlist" class="nav-link">⭐ Wishlist</a>
+      <a href="/stats" class="nav-link">📊 Stats</a>
       <a href="/custom-roms" class="nav-link">🛠️ Custom ROMs</a>
       <a href="/sources" class="nav-link">🌐 Fuentes de ROMs</a>
     </nav>
     <div class="sidebar-footer" style="display:flex;flex-direction:column;gap:4px;">
-      <button onclick="openStats()" style="width:100%;text-align:left;font-size:12px;background:#1e1e32;border:none;color:#9ca3af;border-radius:7px;padding:7px 10px;cursor:pointer;">📊 Estadísticas</button>
-      <button onclick="scanRoms()" style="width:100%;text-align:left;font-size:12px;background:#1e1e32;border:none;color:#9ca3af;border-radius:7px;padding:7px 10px;cursor:pointer;">🔍 Escanear ROMs locales</button>
+      <button onclick="window.location='/stats'" style="width:100%;text-align:left;font-size:12px;background:#1e1e32;border:none;color:#9ca3af;border-radius:7px;padding:7px 10px;cursor:pointer;">📊 Stats completos</button>
+      <button onclick="scanRoms()" style="width:100%;text-align:left;font-size:12px;background:#1e1e32;border:none;color:#9ca3af;border-radius:7px;padding:7px 10px;cursor:pointer;">🔍 Escanear ROMs</button>
       <button onclick="openDownloads()" id="dl-btn" style="width:100%;text-align:left;font-size:12px;background:#1e1e32;border:none;color:#9ca3af;border-radius:7px;padding:7px 10px;cursor:pointer;">⬇️ Descargas</button>
+      <button onclick="toggleTheme()" id="theme-btn" style="width:100%;text-align:left;font-size:12px;background:#1e1e32;border:none;color:#9ca3af;border-radius:7px;padding:7px 10px;cursor:pointer;">🌙 Tema oscuro</button>
       {% if igdb_enabled() %}<div style="font-size:10px;color:#059669;text-align:center;">● IGDB activo</div>{% endif %}
       <div id="aria2-status" style="font-size:10px;text-align:center;color:#374151;">⏳ aria2…</div>
     </div>
@@ -133,6 +136,7 @@
             <div class="cover-ph" style="width:100%;height:100%;"><span style="font-size:40px;">{{ console_emoji(game.console) }}</span></div>
             {% endif %}
             <span class="badge badge-{{ game.status or 'pending' }}" style="position:absolute;top:6px;right:6px;">{{ status_icon(game.status) }}</span>
+            {% if game.disc_number %}<span style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,.75);font-size:9px;padding:1px 5px;border-radius:4px;color:#a8a29e;">Disc {{ game.disc_number }}</span>{% endif %}
             <span style="position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.75);font-size:10px;padding:2px 6px;border-radius:4px;color:#d1d5db;">{{ game.console }}</span>
           </div>
           <div style="padding:8px;">
@@ -191,9 +195,9 @@
 <!-- ── Bottom nav (mobile) ──────────────────────────────────────────────────── -->
 <nav class="bottom-nav">
   <a href="/" class="active"><span class="icon">🎮</span>Juegos</a>
-  <a href="/archive"><span class="icon">📦</span>Archive</a>
+  <a href="/wishlist"><span class="icon">⭐</span>Wishlist</a>
   <button onclick="openQuick()"><span class="icon">⬇️</span>Descargar</button>
-  <a href="/custom-roms"><span class="icon">🛠️</span>Custom</a>
+  <a href="/stats"><span class="icon">📊</span>Stats</a>
   <button onclick="openDownloads()" id="dl-btn-mobile"><span class="icon">📋</span>Cola</button>
 </nav>
 
@@ -431,30 +435,75 @@ function pickCover(el,url,title,year,genre){
 async function openGame(id){
   $id('modal-game').style.display='flex';
   const g=await fetch(`/api/games/${id}`).then(r=>r.json());
+  const pt=g.total_playtime?`<div style="font-size:11px;color:#6ee7b7;">⏱️ ${fmtPlaytime(g.total_playtime)}</div>`:'';
+  const ra=g.ra_achievements?`<span class="badge badge-ra">🏆 ${g.ra_achievements} logros</span>`:'';
+  const disc=g.disc_number?`<span class="badge badge-disc">Disc ${g.disc_number}</span>`:'';
+  const lastPlayed=g.last_played?`<div style="font-size:11px;color:#4b5563;">🕹️ Último: ${g.last_played.slice(0,10)}</div>`:'';
   $id('game-content').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+      <div></div>
+      <button onclick="$id('modal-game').style.display='none'" style="background:none;border:none;color:#6b7280;font-size:24px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
     <div style="display:flex;gap:14px;margin-bottom:14px;">
       <div style="position:relative;flex-shrink:0;width:100px;height:140px;border-radius:10px;overflow:hidden;">
         ${g.cover_url?`<img src="${esc(g.cover_url)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="cover-ph" style="width:100%;height:100%;position:absolute;inset:0;display:none;font-size:32px;">🎮</div>`:`<div class="cover-ph" style="width:100%;height:100%;font-size:32px;">🎮</div>`}
       </div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:17px;font-weight:700;line-height:1.3;margin-bottom:4px;">${esc(g.title)}</div>
-        <div style="color:#818cf8;font-size:13px;margin-bottom:8px;">${g.console}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">
+        <div style="color:#818cf8;font-size:13px;margin-bottom:6px;">${g.console}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;">
           ${g.genre?`<span class="badge" style="background:#3b0764;color:#c4b5fd;">${g.genre}</span>`:''}
           ${g.region?`<span class="badge" style="background:#1f2937;color:#9ca3af;">${g.region}</span>`:''}
           ${g.year?`<span class="badge" style="background:#1f2937;color:#9ca3af;">${g.year}</span>`:''}
           <span class="badge badge-${g.status||'pending'}">${SL[g.status]||g.status}</span>
+          ${ra}${disc}
         </div>
-        ${g.file_path?`<div style="font-size:11px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📁 ${esc(g.file_path.split('/').slice(-3).join('/'))}</div>`:''}
+        ${pt}${lastPlayed}
+        ${g.file_path?`<div style="font-size:11px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px;">📁 ${esc(g.file_path.split('/').slice(-3).join('/'))}</div>`:''}
         ${g.file_size?`<div style="font-size:11px;color:#374151;">💾 ${fmtSize(g.file_size)}</div>`:''}
       </div>
     </div>
     ${g.description?`<p style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:12px;">${esc(g.description)}</p>`:''}
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      ${g.status==='owned'?`<button onclick="startPlay(${g.id})" class="btn btn-green btn-sm" id="btn-play-${g.id}">▶ Jugar</button>`:''}
       <button onclick="editGame(${g.id})" class="btn btn-indigo btn-sm">✏️ Editar</button>
       ${g.download_url&&g.status!=='owned'?`<button onclick="retryDl(${g.id})" class="btn btn-green btn-sm">⬇️ Re-descargar</button>`:''}
+      ${!g.ra_game_id&&{% if ra_enabled() %}true{% else %}false{% endif %}?`<button onclick="syncRA(${g.id})" class="btn btn-gray btn-sm">🏆 Sync RA</button>`:''}
       <button onclick="delGame(${g.id})" class="btn btn-red btn-sm">🗑️ Borrar</button>
     </div>`;
+}
+
+// Playtime tracking
+let _activeSession = {};
+function fmtPlaytime(s) { if(!s)return''; const h=Math.floor(s/3600),m=Math.floor((s%3600)/60); return h?`${h}h ${m}m`:`${m}m`; }
+async function startPlay(gameId) {
+  if(_activeSession[gameId]) { await stopPlay(gameId); return; }
+  const r = await fetch(`/api/games/${gameId}/play/start`, {method:'POST'});
+  if(r.ok) {
+    const d=await r.json();
+    _activeSession[gameId]=d.session_id;
+    const btn=$id(`btn-play-${gameId}`);
+    if(btn){btn.textContent='⏹ Parar';btn.classList.replace('btn-green','btn-red');}
+    toast('▶ Sesión iniciada','#059669');
+  }
+}
+async function stopPlay(gameId) {
+  const sessionId=_activeSession[gameId]; if(!sessionId)return;
+  const fd=new FormData(); fd.append('session_id',sessionId);
+  const r=await fetch(`/api/games/${gameId}/play/stop`,{method:'POST',body:fd});
+  if(r.ok){
+    const d=await r.json();
+    delete _activeSession[gameId];
+    toast(`⏹ Sesión: ${d.duration_str}`,'#6366f1');
+  }
+}
+
+// RetroAchievements
+async function syncRA(gameId) {
+  toast('🏆 Sincronizando RA…','#374151');
+  const r=await fetch(`/api/games/${gameId}/ra/sync`,{method:'POST'});
+  if(r.ok){ const d=await r.json(); toast(`🏆 ${d.ra_achievements} logros`,'#f59e0b'); openGame(gameId); }
+  else toast('Sin resultados en RA','#374151');
 }
 async function editGame(id){
   const g=await fetch(`/api/games/${id}`).then(r=>r.json());
@@ -484,15 +533,27 @@ async function delGame(id){
 // ── Downloads modal ───────────────────────────────────────────────────────────
 async function openDownloads(){ $id('modal-dl').style.display='flex'; await refreshDl(); }
 async function refreshDl(){
-  const dls=await fetch('/api/downloads').then(r=>r.json());
+  const [dls, statsR] = await Promise.all([
+    fetch('/api/downloads').then(r=>r.json()),
+    fetch('/api/stats').then(r=>r.json()).catch(()=>({queue:{active:0,queued:0,max:3}}))
+  ]);
+  const q = statsR.queue || {};
   const el=$id('dl-list');
-  if(!dls.length){el.innerHTML='<div style="text-align:center;color:#374151;padding:24px;">Sin descargas registradas</div>';return;}
-  el.innerHTML=dls.map(d=>`
+  const queueHeader = q.active||q.queued ? `
+    <div style="background:#1e3a5f;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;display:flex;gap:16px;">
+      <span style="color:#60a5fa;">⬇️ ${q.active}/${q.max} activas</span>
+      <span style="color:#a78bfa;">🕐 ${q.queued} en cola</span>
+    </div>` : '';
+  if(!dls.length){el.innerHTML=queueHeader+'<div style="text-align:center;color:#374151;padding:24px;">Sin descargas registradas</div>';return;}
+  let qPos = 0;
+  el.innerHTML=queueHeader+dls.map(d=>{
+    if(d.status==='queued') qPos++;
+    return `
     <div style="background:#1e1e32;border-radius:10px;padding:12px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div style="min-width:0;flex:1;">
           <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(d.title||'?')}</div>
-          <div style="font-size:11px;color:#818cf8;">${d.console}</div>
+          <div style="font-size:11px;color:#818cf8;">${d.console}${d.status==='queued'?` · <span style="color:#a78bfa;">Cola #${qPos}</span>`:''}</div>
         </div>
         <span class="badge badge-${d.status}" style="margin-left:8px;flex-shrink:0;">${d.status}</span>
       </div>
@@ -508,7 +569,8 @@ async function refreshDl(){
         </div>`:''}
       ${d.status==='failed'?`<div style="display:flex;gap:6px;margin-top:6px;"><button onclick="retryFromDl(${d.game_id||d.id})" class="btn btn-green btn-sm" style="font-size:10px;padding:3px 8px;">↺ Reintentar</button></div>`:''}
       ${d.error?`<div style="font-size:11px;color:#f87171;margin-top:4px;">${esc(d.error)}</div>`:''}
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
@@ -616,6 +678,20 @@ async function checkAria2(){
   }catch{}
 }
 checkAria2();
+
+// ── Theme toggle ──────────────────────────────────────────────────────────────
+function applyTheme(t){
+  document.body.classList.toggle('light', t==='light');
+  const btn=$id('theme-btn');
+  if(btn) btn.textContent = t==='light' ? '☀️ Tema claro' : '🌙 Tema oscuro';
+}
+function toggleTheme(){
+  const cur=localStorage.getItem('theme')||'dark';
+  const next=cur==='dark'?'light':'dark';
+  localStorage.setItem('theme',next);
+  applyTheme(next);
+}
+applyTheme(localStorage.getItem('theme')||'dark');
 </script>
 </body>
 </html>

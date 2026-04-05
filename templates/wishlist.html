@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Wishlist — ROM Library</title>
+<link rel="stylesheet" href="/static/css/base.css">
+<style>
+  .page { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  .topbar-simple { background:#1a1a2e; border-bottom:1px solid #2d2d44; padding:12px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; flex-wrap:wrap; }
+  h1 { font-size:20px; font-weight:700; margin:0; }
+  .console-tabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; }
+  .tab { padding:5px 14px; border-radius:999px; font-size:12px; cursor:pointer; border:1px solid #3d3d5c; background:transparent; color:#9ca3af; transition:all .15s; text-decoration:none; display:inline-block; }
+  .tab:hover { border-color:#f59e0b; color:#fcd34d; }
+  .tab.active { background:#78350f; border-color:#f59e0b; color:#fcd34d; }
+  .wishlist-grid { display:grid; gap:12px; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); }
+  .wish-card { background:#1e1e32; border:1px solid #2d2d44; border-radius:12px; overflow:hidden; transition:transform .18s,border-color .18s; cursor:pointer; }
+  .wish-card:hover { border-color:#f59e0b; transform:translateY(-2px); }
+  .badge-wishlist { background:#78350f; color:#fcd34d; }
+  .empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:40vh; color:#374151; text-align:center; gap:8px; }
+</style>
+</head>
+<body>
+
+<div class="topbar-simple">
+  <a href="/" style="color:#818cf8;text-decoration:none;font-size:13px;">← Biblioteca</a>
+  <h1>⭐ Wishlist</h1>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <button onclick="openAdd()" class="btn btn-indigo btn-sm">+ Añadir deseo</button>
+    <a href="/stats" class="btn btn-gray btn-sm">📊 Stats</a>
+  </div>
+</div>
+
+<div class="page">
+  <!-- Console tabs -->
+  <div class="console-tabs" style="margin-top:16px;">
+    <a href="/wishlist" class="tab {{ 'active' if not selected_console else '' }}">Todos ({{ games|length }})</a>
+    {% for c in consoles %}
+    {% set cnt = games|selectattr('console','eq',c)|list|length %}
+    {% if cnt %}
+    <a href="/wishlist?console={{ c }}" class="tab {{ 'active' if selected_console == c else '' }}">{{ c }} ({{ cnt }})</a>
+    {% endif %}
+    {% endfor %}
+  </div>
+
+  {% if not games %}
+  <div class="empty">
+    <div style="font-size:52px;">⭐</div>
+    <div style="font-size:16px;font-weight:600;">Wishlist vacía</div>
+    <div style="font-size:13px;">Añade juegos que quieras conseguir</div>
+    <button onclick="openAdd()" class="btn btn-indigo btn-sm" style="margin-top:12px;">+ Añadir deseo</button>
+  </div>
+  {% else %}
+  <div class="wishlist-grid">
+    {% for game in games %}
+    <div class="wish-card" onclick="openWishGame({{ game.id }})">
+      <div style="position:relative;height:180px;">
+        {% if game.cover_url %}
+        <img src="{{ game.cover_url }}" style="width:100%;height:100%;object-fit:cover;"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="cover-ph" style="width:100%;height:100%;position:absolute;inset:0;display:none;"><span style="font-size:40px;">⭐</span></div>
+        {% else %}
+        <div class="cover-ph" style="width:100%;height:100%;"><span style="font-size:40px;">⭐</span></div>
+        {% endif %}
+        <span class="badge badge-wishlist" style="position:absolute;top:6px;right:6px;">⭐</span>
+        <span style="position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.75);font-size:10px;padding:2px 6px;border-radius:4px;color:#d1d5db;">{{ game.console }}</span>
+      </div>
+      <div style="padding:8px;">
+        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ game.title }}">{{ game.title }}</div>
+        <div style="font-size:11px;color:#4b5563;">{{ game.year or '' }}{% if game.genre %} · {{ game.genre }}{% endif %}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- Toast -->
+<div id="toast" style="display:none;">
+  <div id="toast-msg" style="padding:10px 18px;border-radius:12px;font-size:13px;font-weight:600;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.4);"></div>
+</div>
+
+<!-- Add wish modal -->
+<div class="modal-bg" id="modal-add" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:480px;">
+    <div style="padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <span style="font-size:16px;font-weight:700;">⭐ Añadir a Wishlist</span>
+        <button onclick="$id('modal-add').style.display='none'" style="background:none;border:none;color:#6b7280;font-size:24px;cursor:pointer;">&times;</button>
+      </div>
+      <form id="form-add" style="display:flex;flex-direction:column;gap:10px;">
+        <input type="hidden" id="f-id">
+        <div>
+          <label style="font-size:11px;color:#4b5563;display:block;margin-bottom:4px;">Título *</label>
+          <input id="f-title" class="inp" placeholder="Nombre del juego" required>
+        </div>
+        <div>
+          <label style="font-size:11px;color:#4b5563;display:block;margin-bottom:4px;">Consola *</label>
+          <select id="f-console" class="inp">
+            {% for c in consoles %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label style="font-size:11px;color:#4b5563;display:block;margin-bottom:4px;">Género</label>
+            <input id="f-genre" class="inp" placeholder="Acción…">
+          </div>
+          <div>
+            <label style="font-size:11px;color:#4b5563;display:block;margin-bottom:4px;">Año</label>
+            <input id="f-year" type="number" class="inp" placeholder="2005">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:#4b5563;display:block;margin-bottom:4px;">Portada URL</label>
+          <input id="f-cover-url" type="url" class="inp" placeholder="https://…">
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:4px;">
+          <button type="button" onclick="$id('modal-add').style.display='none'" class="btn btn-gray btn-sm">Cancelar</button>
+          <button type="submit" class="btn btn-indigo btn-sm">⭐ Guardar deseo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Game modal -->
+<div class="modal-bg" id="modal-game" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:480px;">
+    <div style="padding:20px;" id="game-content"></div>
+  </div>
+</div>
+
+<script>
+const CONSOLES = {{ consoles | tojson }};
+function $id(id) { return document.getElementById(id); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+let _tt;
+function toast(msg, color='#6366f1') {
+  const t=$id('toast'), m=$id('toast-msg');
+  m.textContent=msg; m.style.background=color;
+  t.style.display='block'; clearTimeout(_tt);
+  _tt=setTimeout(()=>t.style.display='none', 3500);
+}
+
+function openAdd() {
+  $id('f-id').value=''; $id('form-add').reset();
+  $id('modal-add').style.display='flex';
+}
+
+$id('form-add').addEventListener('submit', async e => {
+  e.preventDefault();
+  const id = $id('f-id').value;
+  const fd = new FormData();
+  fd.append('title', $id('f-title').value);
+  fd.append('console', $id('f-console').value);
+  fd.append('genre', $id('f-genre').value);
+  fd.append('year', $id('f-year').value);
+  fd.append('cover_url', $id('f-cover-url').value);
+  fd.append('status', 'wishlist');
+  const r = await fetch(id ? `/api/games/${id}` : '/api/games', { method: id ? 'PUT' : 'POST', body: fd });
+  if (r.ok) {
+    $id('modal-add').style.display = 'none';
+    toast('⭐ Añadido a la wishlist', '#d97706');
+    setTimeout(() => location.reload(), 800);
+  } else toast('❌ Error', '#dc2626');
+});
+
+async function openWishGame(id) {
+  $id('modal-game').style.display = 'flex';
+  const g = await fetch(`/api/games/${id}`).then(r => r.json());
+  $id('game-content').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+      <div style="font-size:17px;font-weight:700;line-height:1.3;">${esc(g.title)}</div>
+      <button onclick="$id('modal-game').style.display='none'" style="background:none;border:none;color:#6b7280;font-size:24px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    ${g.cover_url ? `<img src="${esc(g.cover_url)}" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin-bottom:12px;" onerror="this.style.display='none'">` : ''}
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;">
+      <span class="badge" style="background:#1e3a5f;color:#60a5fa;">${g.console}</span>
+      ${g.genre ? `<span class="badge" style="background:#3b0764;color:#c4b5fd;">${g.genre}</span>` : ''}
+      ${g.year ? `<span class="badge" style="background:#1f2937;color:#9ca3af;">${g.year}</span>` : ''}
+    </div>
+    ${g.description ? `<p style="font-size:13px;color:#6b7280;margin-bottom:12px;">${esc(g.description)}</p>` : ''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button onclick="downloadWish(${g.id})" class="btn btn-green btn-sm">⬇️ Descargar ahora</button>
+      <button onclick="editWish(${g.id})" class="btn btn-indigo btn-sm">✏️ Editar</button>
+      <button onclick="removeWish(${g.id})" class="btn btn-red btn-sm">🗑️ Eliminar</button>
+    </div>`;
+}
+
+async function downloadWish(id) {
+  const g = await fetch(`/api/games/${id}`).then(r => r.json());
+  const url = prompt('URL de descarga para ' + g.title + ':', g.download_url || '');
+  if (!url) return;
+  const fd = new FormData();
+  fd.append('download_url', url);
+  fd.append('status', 'downloading');
+  await fetch(`/api/games/${id}`, { method: 'PUT', body: fd });
+  toast('⬇️ Descarga iniciada', '#059669');
+  setTimeout(() => window.location = '/', 1000);
+}
+
+async function editWish(id) {
+  const g = await fetch(`/api/games/${id}`).then(r => r.json());
+  $id('f-id').value = id;
+  $id('f-title').value = g.title || '';
+  $id('f-console').value = g.console || '';
+  $id('f-genre').value = g.genre || '';
+  $id('f-year').value = g.year || '';
+  $id('f-cover-url').value = g.cover_url || '';
+  $id('modal-game').style.display = 'none';
+  $id('modal-add').style.display = 'flex';
+}
+
+async function removeWish(id) {
+  if (!confirm('¿Eliminar de la wishlist?')) return;
+  await fetch(`/api/games/${id}`, { method: 'DELETE' });
+  $id('modal-game').style.display = 'none';
+  toast('Eliminado', '#374151');
+  setTimeout(() => location.reload(), 600);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Estadísticas — ROM Library</title>
+<link rel="stylesheet" href="/static/css/base.css">
+<style>
+  .page { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  .topbar-simple { background:#1a1a2e; border-bottom:1px solid #2d2d44; padding:12px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; flex-wrap:wrap; }
+  h1 { font-size:20px; font-weight:700; margin:0; }
+  h2 { font-size:14px; font-weight:700; margin:0 0 12px; color:#a5b4fc; text-transform:uppercase; letter-spacing:.06em; }
+  .section { background:#1e1e32; border:1px solid #2d2d44; border-radius:14px; padding:18px; margin-bottom:16px; }
+  .kpi-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+  @media(min-width:480px) { .kpi-grid { grid-template-columns:repeat(4,1fr); } }
+  .kpi { background:#12122a; border-radius:10px; padding:14px; text-align:center; }
+  .kpi .val { font-size:26px; font-weight:700; }
+  .kpi .lbl { font-size:11px; color:#4b5563; margin-top:3px; }
+  .bar-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:13px; }
+  .bar-track { flex:1; background:#2d2d44; border-radius:4px; height:8px; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:4px; background:linear-gradient(90deg,#6366f1,#818cf8); }
+  .bar-fill-green { background:linear-gradient(90deg,#059669,#34d399); }
+  .bar-fill-amber { background:linear-gradient(90deg,#d97706,#fbbf24); }
+  .dup-card { background:#12122a; border-radius:8px; padding:10px 12px; margin-bottom:8px; border-left:3px solid #f59e0b; }
+  .game-row-mini { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #2d2d44; font-size:12px; }
+  .game-row-mini:last-child { border-bottom:none; }
+  .pill { display:inline-flex; align-items:center; gap:6px; background:#1e1e32; border-radius:8px; padding:6px 12px; font-size:13px; }
+  .export-btns { display:flex; gap:8px; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+
+<div class="topbar-simple">
+  <a href="/" style="color:#818cf8;text-decoration:none;font-size:13px;">← Biblioteca</a>
+  <h1>📊 Estadísticas</h1>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <div class="export-btns">
+      <a href="/api/export.json" download class="btn btn-gray btn-sm">⬇ JSON</a>
+      <a href="/api/export.csv" download class="btn btn-gray btn-sm">⬇ CSV</a>
+    </div>
+  </div>
+</div>
+
+<div class="page" style="margin-top:16px;">
+
+  <!-- KPIs -->
+  <div class="section">
+    <h2>Resumen</h2>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="val" style="color:#818cf8;">{{ stats.total }}</div><div class="lbl">Total juegos</div></div>
+      <div class="kpi"><div class="val" style="color:#6ee7b7;">{{ stats.by_status.get('owned', 0) }}</div><div class="lbl">Descargados</div></div>
+      <div class="kpi"><div class="val" style="color:#fbbf24;">{{ stats.by_status.get('wishlist', 0) }}</div><div class="lbl">Wishlist</div></div>
+      <div class="kpi"><div class="val" style="color:#60a5fa;">{{ stats.disk.total_size | format_size }}</div><div class="lbl">En disco</div></div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+    <!-- Por consola -->
+    <div class="section">
+      <h2>Por consola</h2>
+      {% set max_count = stats.by_console.values() | max if stats.by_console else 1 %}
+      {% for console, count in stats.by_console.items() | sort(attribute=1, reverse=true) %}
+      <div class="bar-row">
+        <span style="width:90px;color:#9ca3af;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ console }}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:{{ (count / max_count * 100)|int }}%"></div></div>
+        <span style="color:#4b5563;font-size:12px;width:28px;text-align:right;">{{ count }}</span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Por estado -->
+    <div class="section">
+      <h2>Por estado</h2>
+      {% set status_colors = {'owned':'#059669','downloading':'#3b82f6','queued':'#8b5cf6','pending':'#d97706','failed':'#dc2626','wishlist':'#d97706'} %}
+      {% set status_labels = {'owned':'✅ Tengo','downloading':'⬇️ Descargando','queued':'🕐 En cola','pending':'⏳ Pendiente','failed':'❌ Error','wishlist':'⭐ Wishlist'} %}
+      {% set max_st = stats.by_status.values() | max if stats.by_status else 1 %}
+      {% for s, count in stats.by_status.items() | sort(attribute=1, reverse=true) %}
+      <div class="bar-row">
+        <span style="width:110px;font-size:12px;color:#9ca3af;white-space:nowrap;">{{ status_labels.get(s, s) }}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:{{ (count / max_st * 100)|int }}%;background:{{ status_colors.get(s, '#4b5563') }};"></div></div>
+        <span style="color:#4b5563;font-size:12px;width:28px;text-align:right;">{{ count }}</span>
+      </div>
+      {% endfor %}
+
+      {% if stats.by_genre %}
+      <h2 style="margin-top:20px;">Por género</h2>
+      {% set max_g = stats.by_genre.values() | max if stats.by_genre else 1 %}
+      {% for genre, count in stats.by_genre.items() %}
+      <div class="bar-row">
+        <span style="width:110px;font-size:12px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ genre }}</span>
+        <div class="bar-track"><div class="bar-fill bar-fill-green" style="width:{{ (count / max_g * 100)|int }}%"></div></div>
+        <span style="color:#4b5563;font-size:12px;width:28px;text-align:right;">{{ count }}</span>
+      </div>
+      {% endfor %}
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- Disco por consola -->
+  {% if stats.disk.by_console %}
+  <div class="section">
+    <h2>Espacio en disco</h2>
+    {% set max_sz = stats.disk.by_console | map(attribute='size') | select | max %}
+    {% for row in stats.disk.by_console %}
+    <div class="bar-row">
+      <span style="width:90px;color:#9ca3af;font-size:12px;white-space:nowrap;">{{ row.console }}</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-amber" style="width:{{ (row.size / max_sz * 100)|int if max_sz else 0 }}%"></div></div>
+      <span style="color:#4b5563;font-size:12px;min-width:60px;text-align:right;">{{ row.size | format_size }}</span>
+      <span style="color:#6b7280;font-size:11px;">({{ row.count }})</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Playtime -->
+  {% if stats.top_playtime %}
+  <div class="section">
+    <h2>⏱️ Más jugados</h2>
+    {% for game in stats.top_playtime %}
+    <div class="game-row-mini">
+      {% if game.cover_url %}
+      <img src="{{ game.cover_url }}" style="width:28px;height:36px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none'">
+      {% else %}
+      <span style="font-size:20px;width:28px;text-align:center;">🎮</span>
+      {% endif %}
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ game.title }}</div>
+        <div style="color:#818cf8;font-size:11px;">{{ game.console }}</div>
+      </div>
+      <div style="color:#6ee7b7;font-size:12px;white-space:nowrap;">{{ format_playtime(game.total_playtime) }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Jugados recientemente -->
+  {% if stats.recently_played %}
+  <div class="section">
+    <h2>🕹️ Jugados recientemente</h2>
+    {% for game in stats.recently_played %}
+    <div class="game-row-mini">
+      {% if game.cover_url %}
+      <img src="{{ game.cover_url }}" style="width:28px;height:36px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none'">
+      {% else %}
+      <span style="font-size:20px;width:28px;text-align:center;">🎮</span>
+      {% endif %}
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ game.title }}</div>
+        <div style="color:#818cf8;font-size:11px;">{{ game.console }}</div>
+      </div>
+      <div style="color:#4b5563;font-size:11px;white-space:nowrap;">{{ game.last_played[:10] if game.last_played else '' }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Duplicados -->
+  {% if duplicates %}
+  <div class="section">
+    <h2>⚠️ Posibles duplicados ({{ duplicates|length }})</h2>
+    <p style="font-size:12px;color:#4b5563;margin-bottom:12px;">Juegos con el mismo título y consola detectados en la biblioteca.</p>
+    {% for dup in duplicates %}
+    <div class="dup-card">
+      <div style="font-size:12px;font-weight:600;color:#fbbf24;margin-bottom:6px;">{{ dup.games[0].console }} — {{ dup.games[0].title }}</div>
+      {% for g in dup.games %}
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#9ca3af;padding:2px 0;">
+        <span>#{{ g.id }} · {{ g.title }} <span class="badge badge-{{ g.status or 'pending' }}" style="font-size:9px;">{{ g.status }}</span></span>
+        <span>{{ g.file_size | format_size if g.file_size else '—' }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="section" style="text-align:center;color:#374151;">
+    <div style="font-size:28px;margin-bottom:6px;">✅</div>
+    <div style="font-size:13px;">Sin duplicados detectados</div>
+  </div>
+  {% endif %}
+
+  <!-- Exportar -->
+  <div class="section">
+    <h2>💾 Exportar biblioteca</h2>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:12px;">Descarga toda la metadata de tu biblioteca.</p>
+    <div class="export-btns">
+      <a href="/api/export.json" download="rom-library.json" class="btn btn-indigo btn-sm">⬇️ Exportar JSON</a>
+      <a href="/api/export.csv" download="rom-library.csv" class="btn btn-gray btn-sm">⬇️ Exportar CSV</a>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
