@@ -7,11 +7,12 @@ from fastapi.templating import Jinja2Templates
 
 from .database import (
     init_db, get_games, get_game, add_game, update_game, delete_game,
-    get_console_counts, get_genres, get_downloads, get_active_downloads
+    get_console_counts, get_genres, get_downloads, get_active_downloads,
+    get_disk_stats,
 )
 from .scanner import scan_directory, CONSOLES, CONSOLE_EXTENSIONS, url_to_game_info
-from .downloader import download_rom, format_size
-from .metadata import fetch_metadata, is_igdb_configured
+from .downloader import download_rom, format_size, format_speed, format_eta, queue_status
+from .metadata import fetch_metadata, is_igdb_configured, search_covers
 
 BASE_DIR = Path(__file__).parent.parent
 ROMS_PATH = Path.home() / "roms"
@@ -33,6 +34,8 @@ _STATUS_ICON = {"owned": "✅", "downloading": "⬇️", "pending": "⏳", "fail
 templates.env.globals["console_emoji"] = lambda c: _CONSOLE_EMOJI.get(c, "🎮")
 templates.env.globals["status_icon"] = lambda s: _STATUS_ICON.get(s, "❓")
 templates.env.globals["igdb_enabled"] = is_igdb_configured
+templates.env.globals["format_speed"] = format_speed
+templates.env.globals["format_eta"] = format_eta
 
 
 @app.on_event("startup")
@@ -145,11 +148,6 @@ async def api_downloads():
     return get_downloads(50)
 
 
-@app.get("/api/downloads/active")
-async def api_active_downloads():
-    return get_active_downloads()
-
-
 # ── API Scan ──────────────────────────────────────────────────────────────────
 
 @app.post("/api/scan")
@@ -199,6 +197,7 @@ async def api_bulk_add(background_tasks: BackgroundTasks, urls: str = Form(...))
 @app.get("/api/stats")
 async def api_stats():
     counts = get_console_counts()
+    disk = get_disk_stats()
     all_games = get_games()
     statuses = {}
     for g in all_games:
@@ -208,4 +207,22 @@ async def api_stats():
         "total": len(all_games),
         "by_console": counts,
         "by_status": statuses,
+        "disk": disk,
+        "queue": queue_status(),
     }
+
+
+@app.get("/api/covers/search")
+async def api_cover_search(q: str, console: str = ""):
+    results = await search_covers(q, console)
+    return results
+
+
+@app.get("/api/downloads/active")
+async def api_active_downloads_with_speed():
+    rows = get_active_downloads()
+    return [
+        {**r, "speed_str": format_speed(r.get("speed", 0)),
+         "eta_str": format_eta(r.get("eta", 0))}
+        for r in rows
+    ]

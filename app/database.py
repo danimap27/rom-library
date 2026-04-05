@@ -19,6 +19,7 @@ def get_conn():
 
 
 def init_db():
+    migrate()
     with get_conn() as conn:
         conn.executescript("""
         CREATE TABLE IF NOT EXISTS games (
@@ -45,10 +46,18 @@ def init_db():
             url TEXT NOT NULL,
             status TEXT DEFAULT 'pending',
             progress INTEGER DEFAULT 0,
+            speed INTEGER DEFAULT 0,
+            eta INTEGER DEFAULT 0,
+            downloaded INTEGER DEFAULT 0,
+            total_size INTEGER DEFAULT 0,
             error TEXT,
             created_at TEXT DEFAULT (datetime('now')),
             updated_at TEXT DEFAULT (datetime('now'))
         );
+
+        -- add columns if upgrading from old schema
+        CREATE TABLE IF NOT EXISTS _migrations (id INTEGER PRIMARY KEY, name TEXT UNIQUE);
+
         """)
 
 
@@ -146,6 +155,43 @@ def get_downloads(limit=20):
                ORDER BY d.created_at DESC LIMIT ?""", (limit,)
         ).fetchall()
     return [dict(r) for r in rows]
+
+
+def migrate():
+    """Add columns to existing DBs without breaking them."""
+    cols_to_add = [
+        ("downloads", "speed", "INTEGER DEFAULT 0"),
+        ("downloads", "eta", "INTEGER DEFAULT 0"),
+        ("downloads", "downloaded", "INTEGER DEFAULT 0"),
+        ("downloads", "total_size", "INTEGER DEFAULT 0"),
+    ]
+    with get_conn() as conn:
+        existing = {
+            (r[0], r[1])
+            for r in conn.execute(
+                "SELECT m.name, p.name FROM sqlite_master m "
+                "JOIN pragma_table_info(m.name) p WHERE m.type='table'"
+            ).fetchall()
+        }
+        for table, col, typedef in cols_to_add:
+            if (table, col) not in existing:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {typedef}")
+
+
+def get_disk_stats() -> dict:
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT console, COUNT(*) as count, SUM(file_size) as size "
+            "FROM games WHERE file_size > 0 GROUP BY console ORDER BY size DESC"
+        ).fetchall()
+        total = conn.execute(
+            "SELECT COUNT(*) as c, SUM(file_size) as s FROM games WHERE file_size > 0"
+        ).fetchone()
+    return {
+        "by_console": [dict(r) for r in rows],
+        "total_games": total["c"] or 0,
+        "total_size": total["s"] or 0,
+    }
 
 
 def get_active_downloads():

@@ -116,5 +116,47 @@ async def fetch_metadata(game_id: int, title: str, console: str) -> dict | None:
         return None
 
 
+async def search_covers(title: str, console: str) -> list[dict]:
+    """Return list of {title, cover_url, year, genre} from IGDB."""
+    if not CLIENT_ID or not CLIENT_SECRET:
+        return []
+    try:
+        token = await _get_token()
+        platform_id = CONSOLE_IGDB_IDS.get(console)
+        query = f'search "{title}"; fields name,cover.url,genres,first_release_date;'
+        if platform_id:
+            query += f' where platforms = ({platform_id});'
+        query += " limit 8;"
+
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                "https://api.igdb.com/v4/games",
+                headers={"Client-ID": CLIENT_ID, "Authorization": f"Bearer {token}"},
+                content=query,
+            )
+            results = r.json()
+
+        out = []
+        for g in results:
+            cover = g.get("cover", {}).get("url", "")
+            if cover.startswith("//"):
+                cover = "https:" + cover
+            cover = cover.replace("t_thumb", "t_cover_big")
+            year = None
+            if "first_release_date" in g:
+                import datetime
+                year = datetime.datetime.fromtimestamp(g["first_release_date"]).year
+            genre_id = (g.get("genres") or [None])[0]
+            out.append({
+                "title": g["name"],
+                "cover_url": cover,
+                "year": year,
+                "genre": GENRE_MAP.get(genre_id, ""),
+            })
+        return out
+    except Exception:
+        return []
+
+
 def is_igdb_configured() -> bool:
     return bool(CLIENT_ID and CLIENT_SECRET)
