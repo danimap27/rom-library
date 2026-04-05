@@ -212,6 +212,14 @@ async def api_stats():
     }
 
 
+@app.get("/sources", response_class=HTMLResponse)
+async def sources(request: Request):
+    return templates.TemplateResponse("sources.html", {
+        "request": request,
+        "consoles": CONSOLES,
+    })
+
+
 @app.get("/api/covers/search")
 async def api_cover_search(q: str, console: str = ""):
     results = await search_covers(q, console)

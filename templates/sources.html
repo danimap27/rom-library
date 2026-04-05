@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Fuentes de ROMs — ROM Library</title>
+<link rel="stylesheet" href="/static/css/base.css">
+<style>
+  .page { max-width: 960px; margin: 0 auto; padding: 16px; }
+  .topbar-simple { background:#1a1a2e; border-bottom:1px solid #2d2d44; padding:12px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; }
+  .console-tabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; }
+  .tab { padding:5px 14px; border-radius:999px; font-size:12px; cursor:pointer; border:1px solid #3d3d5c; background:transparent; color:#9ca3af; transition:all .15s; }
+  .tab:hover { border-color:#6366f1; color:#c7d2fe; }
+  .tab.active { background:#312e81; border-color:#6366f1; color:#c7d2fe; }
+  .section { margin-bottom:32px; }
+  .section-title { font-size:14px; font-weight:700; color:#e2e8f0; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .source-grid { display:grid; gap:12px; grid-template-columns:1fr; }
+  @media (min-width:600px)  { .source-grid { grid-template-columns:repeat(2,1fr); } }
+  @media (min-width:900px)  { .source-grid { grid-template-columns:repeat(3,1fr); } }
+  .source-card { background:#1e1e32; border:1px solid #2d2d44; border-radius:12px; padding:16px; transition:border-color .18s, transform .18s; }
+  .source-card:hover { border-color:#6366f1; transform:translateY(-1px); }
+  .source-card h3 { font-size:14px; font-weight:700; margin:0 0 4px; color:#e2e8f0; }
+  .source-card p  { font-size:12px; color:#6b7280; margin:0 0 12px; line-height:1.5; }
+  .tag { font-size:10px; padding:2px 8px; border-radius:999px; font-weight:600; }
+  .tag-free { background:#064e3b; color:#6ee7b7; }
+  .tag-es    { background:#1e3a5f; color:#93c5fd; }
+  .tag-legal { background:#1c1917; color:#a8a29e; }
+  .tag-large { background:#3b1f04; color:#fde68a; }
+  .howto { background:#12122a; border:1px solid #2d2d44; border-radius:12px; padding:20px; margin-bottom:28px; }
+  .howto h2 { font-size:15px; font-weight:700; margin:0 0 12px; color:#c7d2fe; }
+  .step { display:flex; gap:12px; margin-bottom:10px; align-items:flex-start; }
+  .step-num { background:#312e81; color:#c7d2fe; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; margin-top:1px; }
+  .step p { font-size:13px; color:#9ca3af; margin:0; line-height:1.5; }
+  .step p strong { color:#e2e8f0; }
+  .search-box { display:flex; gap:8px; margin-bottom:20px; }
+  .search-box input { flex:1; }
+  .hidden { display:none !important; }
+  .warning { background:#1c0a00; border:1px solid #7c2d12; border-radius:10px; padding:12px 16px; font-size:12px; color:#fb923c; margin-bottom:20px; line-height:1.6; }
+  h1 { font-size:20px; font-weight:700; }
+  @media(max-width:600px) { h1 { font-size:17px; } }
+</style>
+</head>
+<body style="padding-bottom:80px;">
+
+<div class="topbar-simple">
+  <a href="/" style="color:#818cf8;text-decoration:none;font-size:18px;line-height:1;">←</a>
+  <h1>🌐 Fuentes de ROMs</h1>
+</div>
+
+<div class="page">
+
+  <!-- How to use -->
+  <div class="howto">
+    <h2>Cómo usar con ROM Library</h2>
+    <div class="step">
+      <div class="step-num">1</div>
+      <p>Busca el juego en cualquiera de las fuentes de abajo y abre la página del archivo.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <p>Haz clic derecho sobre el enlace de descarga y copia la URL directa del archivo (<strong>.iso</strong>, <strong>.nds</strong>, <strong>.gba</strong>…).</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <p>Vuelve a <a href="/" style="color:#818cf8;">ROM Library</a>, pégala en la barra de descarga rápida y pulsa ⬇️. Listo.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <p>Para descargar varios a la vez usa el botón <strong>📋 Bulk</strong> — una URL por línea.</p>
+    </div>
+  </div>
+
+  <!-- Search filter -->
+  <div class="search-box">
+    <input type="text" class="inp" id="filter-input" placeholder="Filtrar fuentes…" oninput="filterSources(this.value)">
+  </div>
+
+  <!-- Console tabs -->
+  <div class="console-tabs" id="console-tabs">
+    <button class="tab active" onclick="filterConsole('all', this)">Todas</button>
+    <button class="tab" onclick="filterConsole('psp', this)">PSP</button>
+    <button class="tab" onclick="filterConsole('ps1', this)">PS1</button>
+    <button class="tab" onclick="filterConsole('ps2', this)">PS2</button>
+    <button class="tab" onclick="filterConsole('psvita', this)">PS Vita</button>
+    <button class="tab" onclick="filterConsole('nds', this)">Nintendo DS</button>
+    <button class="tab" onclick="filterConsole('3ds', this)">Nintendo 3DS</button>
+    <button class="tab" onclick="filterConsole('gba', this)">GBA</button>
+    <button class="tab" onclick="filterConsole('snes', this)">SNES</button>
+    <button class="tab" onclick="filterConsole('n64', this)">N64</button>
+    <button class="tab" onclick="filterConsole('gamecube', this)">GameCube</button>
+  </div>
+
+  <!-- ── Archive.org ─────────────────────────────────────────────────────── -->
+  <div class="section" data-consoles="all psp ps1 ps2 psvita nds 3ds gba snes n64 gamecube">
+    <div class="section-title">
+      📦 Archive.org — Biblioteca de preservación digital
+    </div>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:14px;">
+      El Internet Archive es una biblioteca sin ánimo de lucro que preserva software histórico.
+      Contiene colecciones organizadas por consola con búsqueda por nombre.
+    </p>
+
+    <div class="source-grid" id="sources-list">
+
+      <!-- PSP -->
+      <div class="source-card" data-consoles="psp all">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <h3>PSP — Colección No-Intro</h3>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+            <span class="tag tag-free">Gratis</span>
+            <span class="tag tag-legal">Archivo</span>
+          </div>
+        </div>
+        <p>Colección completa de ROMs PSP preservadas en formato No-Intro. Incluye juegos en español.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="https://archive.org/search?query=PSP+game+iso&mediatype=software&sort=downloads" target="_blank" class="btn btn-indigo btn-sm">🔍 Buscar en Archive.org</a>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#374151;">Extensiones: <code style="background:#0f0f1a;padding:1px 5px;border-radius:3px;">.iso .cso</code></div>
+      </div>
+
+      <!-- PS1 -->
+      <div class="source-card" data-consoles="ps1 all">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <h3>PlayStation 1 — Redump</h3>
+          <div style="display:flex;gap:4px;">
+            <span class="tag tag-free">Gratis</span>
+            <span class="tag tag-es">Español</span>
+          </div>
+        </div>
+        <p>Volcados verificados de discos PS1 del proyecto Redump. Muchos juegos con versión española.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="https://archive.org/search?query=PlayStation+1+redump+spain&mediatype=software" target="_blank" class="btn btn-indigo btn-sm">🔍 Buscar</a>
+          <a href="https://archive.org/search?query=subject%3A%22PlayStation%22+spain&mediatype=software" target="_blank" class="btn btn-gray btn-sm">🇪🇸 Solo España</a>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#374151;">Extensiones: <code style="background:#0f0f1a;padding:1px 5px;border-radius:3px;">.bin .cue .iso</code></div>
+      </div>
+
+      <!-- PS2 -->
+      <div class="source-card" data-consoles="ps2 all">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <h3>PlayStation 2 — Colección</h3>
+          <div style="display:flex;gap:4px;">
+            <span class="tag tag-free">Gratis</span>
+            <span class="tag tag-large">Archivos grandes</span>
+          </div>
+        </div>
+        <p>ISOs de PS2 organizadas. Los juegos de PS2 son archivos grandes (1-8 GB), ten en cuenta el espacio.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="https://archive.org/search?query=PlayStation+2+ISO&mediatype=software&sort=downloads" target="_blank" class="btn btn-indigo btn-sm">🔍 Buscar</a>
+          <a href="https://archive.org/search?query=PlayStation+2+spain+ISO&mediatype=software" target="_blank" class="btn btn-gray btn-sm">🇪🇸 España</a>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#374151;">Extensiones: <code style="background:#0f0f1a;padding:1px 5px;border-radius:3px;">.iso</code></div>
+      </div>
+
+      <!-- Nintendo DS -->
+      <div class="source-card" data-consoles="nds all">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <h3>Nintendo DS — No-Intro</h3>
+          <div style="display:flex;gap:4px;">
+            <span class="tag tag-free">Gratis</span>
+            <span class="tag tag-es">Español</span>
+          </div>
+        </div>
+        <p>Biblioteca completa de NDS. Muchísimos juegos disponibles en español, incluidos todos los Mario, Pokémon, Zelda.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="https://archive.org/search?query=Nintendo+DS+nds+ROM&mediatype=software&sort=downloads" target="_blank" class="btn btn-indigo btn-sm">🔍 Buscar</a>
+          <a href="https://archive.org/search?query=Nintendo+DS+spain+nds&mediatype=software" target="_blank" class="btn btn-gray btn-sm">🇪🇸 España</a>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#374151;">Extensiones: <code style="background:#0f0f1a;padding:1px 5px;border-radius:3px;">.nds</code></div>
+      </div>
+
+      <!-- 3DS -->
+      <div class="source-card" data-consoles="3ds all">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <h3>Nintendo 3DS — Colección</h3>
+          <div style="display:flex;gap:4px;">
+            <span class="tag tag-free">Gratis</span>
+            <span class="tag tag-large">Archivos grandes</span>
+          </div>
+        </div>
+        <p>ROMs de 3DS para emular con Citra. Los archivos .cia son los más compatibles con emuladores.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="https://archive.org/search?query=Nintendo+3DS+cia+3ds&mediatype=software&sort=downloads" target="_blank" class="btn btn-indigo btn-sm">🔍 Buscar</a>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#374151;">Extensiones: <code style="background:#0f0f1a;padding:1px 5px;border-radius:3px;">.3ds .cia</code></div>
+      </div>
+
+      <!-- GBA -->
+      <div class="source-card" data-consoles="gba all">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <h3>Game Boy Advance — No-Intro</h3>
+          <div style="display:flex;gap:4px;">
+            <span class="tag tag-free">Gratis</span>
+            <span class="tag tag-es">Español</span>
+          </div>
+        </div>
+        <p>Colección completa de GBA. Pokémon, Zelda, Mario, Fire Emblem, Castlevania… todo disponible en español donde exista traducción.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="https://archive.org/search?query=Game+Boy+Advance+gba+nointro&mediatype=software&sort=downloads" target="_blank" class="btn btn-indigo btn-sm">🔍 Buscar</a>
+          <a href="https://archive.org/search?query=GBA+spain+español&mediatype=software" target="_blank" class="btn btn-gray btn-sm">🇪🇸 España</a>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#374151;">Extensiones: <code style="background:#0f0f1a;padding:1px 5px;border-radius:3px;">.gba</code></div>
+      </div>
+
+      <!-- SNES -->
+      <div class="source-card" data-consoles="snes all">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <h3>Super Nintendo — No-Intro</h3>
+          <div style="display:flex;gap:4px;">
+            <span class="tag tag-free">Gratis</span>
+          </div>
+        </div>
+        <p>Biblioteca completa de SNES/Super Famicom. Clásicos como Chrono Trigger, Final Fantasy VI, Super Metroid.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="https://archive.org/search?query=Super+Nintendo+SNES+sfc&mediatype=software&sort=downloads" target="_blank" class="btn btn-indigo btn-sm">🔍 Buscar</a>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#374151;">Extensiones: <code style="background:#0f0f1a;padding:1px 5px;border-radius:3px;">.sfc .smc</code></div>
+      </div>
+
+      <!-- N64 -->
+      <div class="source-card" data-consoles="n64 all">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <h3>Nintendo 64 — No-Intro</h3>
+          <div style="display:flex;gap:4px;">
+            <span class="tag tag-free">Gratis</span>
+          </div>
+        </div>
+        <p>ROMs de N64. Mario 64, Zelda OoT, GoldenEye, Banjo-Kazooie, Paper Mario y mucho más.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="https://archive.org/search?query=Nintendo+64+N64+z64&mediatype=software&sort=downloads" target="_blank" class="btn btn-indigo btn-sm">🔍 Buscar</a>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#374151;">Extensiones: <code style="background:#0f0f1a;padding:1px 5px;border-radius:3px;">.z64 .n64</code></div>
+      </div>
+
+      <!-- GameCube -->
+      <div class="source-card" data-consoles="gamecube all">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <h3>GameCube — Redump</h3>
+          <div style="display:flex;gap:4px;">
+            <span class="tag tag-free">Gratis</span>
+            <span class="tag tag-large">Archivos grandes</span>
+          </div>
+        </div>
+        <p>ISOs de GameCube verificadas con Redump. Wind Waker, Super Smash Bros Melee, Luigi's Mansion, RE4.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="https://archive.org/search?query=GameCube+ISO+redump&mediatype=software&sort=downloads" target="_blank" class="btn btn-indigo btn-sm">🔍 Buscar</a>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#374151;">Extensiones: <code style="background:#0f0f1a;padding:1px 5px;border-radius:3px;">.iso .gcm</code></div>
+      </div>
+
+      <!-- PS Vita -->
+      <div class="source-card" data-consoles="psvita all">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <h3>PS Vita — NoPayStation</h3>
+          <div style="display:flex;gap:4px;">
+            <span class="tag tag-free">Gratis</span>
+          </div>
+        </div>
+        <p>El emulador de Vita (Vita3K) tiene soporte limitado. Busca PKGs compatibles con Vita3K antes de descargar.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="https://archive.org/search?query=PS+Vita+vpk+pkgj&mediatype=software" target="_blank" class="btn btn-indigo btn-sm">🔍 Buscar en Archive.org</a>
+          <a href="https://vita3k.org/compatibility" target="_blank" class="btn btn-gray btn-sm">Compatibilidad Vita3K</a>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#374151;">Extensiones: <code style="background:#0f0f1a;padding:1px 5px;border-radius:3px;">.vpk</code></div>
+      </div>
+
+      <!-- Búsqueda general Archive.org -->
+      <div class="source-card" data-consoles="all psp ps1 ps2 psvita nds 3ds gba snes n64 gamecube">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <h3>🔎 Buscar título en Archive.org</h3>
+          <span class="tag tag-free">Gratis</span>
+        </div>
+        <p>Busca directamente un juego por nombre. Copia la URL del archivo encontrado y pégala en ROM Library.</p>
+        <div style="display:flex;gap:6px;">
+          <input id="archive-search" class="inp" style="font-size:13px;" placeholder="Nombre del juego…" onkeydown="if(event.key==='Enter')searchArchive()">
+          <button onclick="searchArchive()" class="btn btn-indigo btn-sm">Buscar</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Homebrew / freeware ─────────────────────────────────────────────── -->
+  <div class="section" data-consoles="all psp nds 3ds gba">
+    <div class="section-title">🛠️ Homebrew & Freeware</div>
+    <div class="source-grid">
+
+      <div class="source-card" data-consoles="all psp nds gba 3ds">
+        <h3>PDRoms</h3>
+        <p>Colección de homebrew y demos gratuitas para decenas de consolas. 100% legal — todo es freeware.</p>
+        <a href="https://pdroms.de" target="_blank" class="btn btn-gray btn-sm">Ir a PDRoms</a>
+      </div>
+
+      <div class="source-card" data-consoles="all nds 3ds gba">
+        <h3>GBAtemp — Homebrew</h3>
+        <p>Foro de referencia para homebrew de Nintendo. Juegos gratuitos, utilidades y traducciones al español.</p>
+        <a href="https://gbatemp.net/downloads/" target="_blank" class="btn btn-gray btn-sm">Ir a GBAtemp</a>
+      </div>
+
+      <div class="source-card" data-consoles="all psp">
+        <h3>PSP Homebrew — Archive.org</h3>
+        <p>Aplicaciones y juegos homebrew para PSP. Se ejecutan en cualquier PSP sin necesidad de CFW adicional.</p>
+        <a href="https://archive.org/search?query=PSP+homebrew&mediatype=software" target="_blank" class="btn btn-gray btn-sm">Buscar homebrew PSP</a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Tips ────────────────────────────────────────────────────────────── -->
+  <div style="background:#0d1117;border:1px solid #2d2d44;border-radius:12px;padding:18px;margin-bottom:24px;">
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:#c7d2fe;">💡 Tips para descargar desde Archive.org</div>
+    <ul style="font-size:12px;color:#6b7280;line-height:1.9;margin:0;padding-left:16px;">
+      <li>Busca el nombre del juego en inglés para más resultados. Ejemplo: <em>"Gran Turismo PSP"</em> en vez de <em>"Gran Turismo España"</em>.</li>
+      <li>Para la versión española añade <strong>(Spain)</strong> o <strong>(Europe)</strong> al nombre de búsqueda.</li>
+      <li>En la página del archivo, haz clic derecho sobre el enlace al archivo (.iso, .nds…) y selecciona <strong>"Copiar dirección del enlace"</strong>.</li>
+      <li>Los archivos <strong>.zip</strong> a veces contienen la ROM dentro — extráelos antes de copiarlos a la consola.</li>
+      <li>Para PS1 necesitas tanto el <strong>.bin</strong> como el <strong>.cue</strong> — descarga ambos al mismo directorio.</li>
+      <li>La descarga se hace en el servidor, no en tu navegador — puedes cerrar la ventana mientras descarga.</li>
+    </ul>
+  </div>
+
+</div>
+
+<!-- Bottom nav -->
+<nav class="bottom-nav">
+  <a href="/"><span class="icon">🎮</span>Juegos</a>
+  <a href="/sources" class="active"><span class="icon">🌐</span>Fuentes</a>
+</nav>
+
+<script>
+function searchArchive() {
+  const q = document.getElementById('archive-search').value.trim();
+  if (!q) return;
+  window.open(`https://archive.org/search?query=${encodeURIComponent(q)}&mediatype=software&sort=downloads`, '_blank');
+}
+document.getElementById('archive-search').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); searchArchive(); }
+});
+
+function filterConsole(tag, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.source-card').forEach(card => {
+    const tags = card.dataset.consoles || '';
+    card.closest('.source-card').style.display = (tag === 'all' || tags.includes(tag)) ? '' : 'none';
+  });
+  document.querySelectorAll('.section').forEach(sec => {
+    const tags = sec.dataset.consoles || '';
+    const visible = sec.querySelectorAll('.source-card:not([style*="display: none"])');
+    sec.style.display = (tag === 'all' || tags.includes(tag)) ? '' : 'none';
+  });
+}
+
+function filterSources(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('.source-card').forEach(card => {
+    const text = card.textContent.toLowerCase();
+    card.style.display = text.includes(q) ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>

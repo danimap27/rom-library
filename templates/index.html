@@ -1,545 +1,529 @@
 <!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ROM Library — AYN Thor</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script>tailwind.config = { darkMode: 'class' }</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ROM Library</title>
+<link rel="stylesheet" href="/static/css/base.css">
 <style>
-  body { background: #0f0f1a; color: #e2e8f0; font-family: system-ui, sans-serif; }
-  .sidebar { background: #1a1a2e; border-right: 1px solid #2d2d44; width: 220px; flex-shrink: 0; }
-  .card { background: #1e1e32; border: 1px solid #2d2d44; transition: all 0.18s; }
-  .card:hover { border-color: #6366f1; transform: translateY(-2px); box-shadow: 0 8px 28px rgba(99,102,241,0.18); }
-  .badge-owned { background:#065f46; color:#6ee7b7; }
-  .badge-downloading,.badge-queued { background:#1e3a5f; color:#60a5fa; }
-  .badge-pending { background:#3b1f04; color:#fbbf24; }
-  .badge-failed { background:#4c0519; color:#f87171; }
-  .modal-bg { background:rgba(0,0,0,0.82); backdrop-filter:blur(5px); }
-  .modal-box { background:#1a1a2e; border:1px solid #3d3d5c; }
-  .inp { background:#0f0f1a; border:1px solid #3d3d5c; color:#e2e8f0; border-radius:6px; padding:8px 12px; width:100%; }
-  .inp:focus { outline:none; border-color:#6366f1; }
-  .btn { border:none; border-radius:6px; padding:7px 14px; cursor:pointer; font-weight:600; font-size:13px; transition:all .15s; }
-  .btn-indigo { background:#6366f1; color:#fff; } .btn-indigo:hover { background:#4f46e5; }
-  .btn-green  { background:#059669; color:#fff; } .btn-green:hover  { background:#047857; }
-  .btn-red    { background:#dc2626; color:#fff; } .btn-red:hover    { background:#b91c1c; }
-  .btn-gray   { background:#374151; color:#d1d5db; } .btn-gray:hover { background:#4b5563; }
-  .sidebar-link { display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:13px; transition:background .12s; }
-  .sidebar-link:hover { background:#2d2d44; }
-  .sidebar-link.active { background:#312e81; color:#a5b4fc; }
-  .progress-bar { background:#1e3a5f; border-radius:4px; height:5px; overflow:hidden; }
-  .progress-fill { background:linear-gradient(90deg,#3b82f6,#818cf8); height:100%; transition:width .6s; }
-  .cover-ph { background:linear-gradient(135deg,#1e1e32,#2d2d44); display:flex; align-items:center; justify-content:center; }
-  .quick-zone { background:#12122a; border:2px dashed #3d3d5c; border-radius:10px; transition:border-color .2s; }
-  .quick-zone:focus-within { border-color:#6366f1; }
-  ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-track { background:#1a1a2e; } ::-webkit-scrollbar-thumb { background:#3d3d5c; border-radius:3px; }
-  select.inp option { background:#1a1a2e; }
-  .stat-bar { background:#2d2d44; border-radius:4px; height:8px; overflow:hidden; }
-  .stat-fill { background:linear-gradient(90deg,#6366f1,#818cf8); height:100%; border-radius:4px; transition:width .8s; }
-  .cover-pick { cursor:pointer; border:2px solid transparent; border-radius:8px; overflow:hidden; transition:border-color .15s; }
-  .cover-pick:hover { border-color:#6366f1; }
-  .cover-pick.selected { border-color:#6ee7b7; }
+  .layout { display: flex; height: 100dvh; overflow: hidden; }
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+  .hamburger { display: none; background: none; border: none; color: #e2e8f0; cursor: pointer; padding: 4px; font-size: 22px; }
+  @media (max-width: 1023px) { .hamburger { display: flex; align-items: center; } }
+  @media (max-width: 1023px) { .hide-mobile { display: none !important; } }
+  .sidebar-header { padding: 14px 12px; border-bottom: 1px solid #2d2d44; }
+  .sidebar-body { flex: 1; overflow-y: auto; padding: 8px; }
+  .sidebar-footer { padding: 8px; border-top: 1px solid #2d2d44; }
+  .sect-label { font-size: 10px; color: #4b5563; text-transform: uppercase; letter-spacing: .08em; padding: 8px 10px 4px; }
+  .search-form { display: flex; gap: 6px; flex: 1; min-width: 0; }
+  .search-input { flex: 1; min-width: 0; max-width: 340px; }
+  .topbar-actions { display: flex; gap: 6px; align-items: center; margin-left: auto; }
+  .content-area { flex: 1; overflow-y: auto; padding: 12px; }
+  .breadcrumb { padding: 6px 16px; font-size: 11px; color: #4b5563; border-bottom: 1px solid #1e1e32; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body>
 
-<!-- SIDEBAR -->
-<aside class="sidebar flex flex-col overflow-hidden">
-  <div class="p-3 border-b border-gray-700">
-    <div class="font-bold text-indigo-400 text-base">🎮 ROM Library</div>
-    <div class="text-xs text-gray-500 mt-0.5">{{ total }} juegos</div>
-  </div>
-  <nav class="p-2 overflow-y-auto flex-1 text-sm space-y-0.5">
-    <a href="/" class="sidebar-link {{ 'active' if not selected_console and not selected_status else '' }}">
-      <span>Todos</span><span class="text-xs text-gray-500">{{ total }}</span>
-    </a>
-    <div class="text-xs text-gray-600 uppercase tracking-wider px-2 pt-3 pb-1">Consolas</div>
-    {% for console in consoles %}
-    {% set cnt = console_counts.get(console, 0) %}
-    <a href="/?console={{ console }}" class="sidebar-link {{ 'active' if selected_console == console else '' }}">
-      <span>{{ console }}</span>
-      {% if cnt %}<span class="text-xs bg-indigo-900 text-indigo-300 rounded-full px-1.5">{{ cnt }}</span>{% endif %}
-    </a>
-    {% endfor %}
-    {% if genres %}
-    <div class="text-xs text-gray-600 uppercase tracking-wider px-2 pt-3 pb-1">Género</div>
-    {% for g in genres %}
-    <a href="/?genre={{ g }}{% if selected_console %}&console={{ selected_console }}{% endif %}" class="sidebar-link {{ 'active' if selected_genre == g else '' }}">{{ g }}</a>
-    {% endfor %}
-    {% endif %}
-    <div class="text-xs text-gray-600 uppercase tracking-wider px-2 pt-3 pb-1">Estado</div>
-    {% for s, label in [('owned','✅ Tengo'),('downloading','⬇️ Descargando'),('queued','🕐 En cola'),('pending','⏳ Pendiente'),('failed','❌ Error')] %}
-    <a href="/?status={{ s }}" class="sidebar-link {{ 'active' if selected_status == s else '' }}">{{ label }}</a>
-    {% endfor %}
-  </nav>
-  <div class="p-2 border-t border-gray-700 space-y-1">
-    <button onclick="openStats()" class="w-full text-left text-xs bg-gray-800 hover:bg-gray-700 rounded-lg py-2 px-3 text-gray-400 transition-colors">📊 Estadísticas</button>
-    <button onclick="scanRoms()" class="w-full text-left text-xs bg-gray-800 hover:bg-gray-700 rounded-lg py-2 px-3 text-gray-400 transition-colors">🔍 Escanear ROMs</button>
-    <button onclick="openDownloads()" id="dl-btn" class="w-full text-left text-xs bg-gray-800 hover:bg-gray-700 rounded-lg py-2 px-3 text-gray-400 transition-colors">⬇️ Descargas</button>
-    {% if igdb_enabled() %}<div class="text-xs text-green-600 text-center px-2">● IGDB activo</div>{% endif %}
-  </div>
-</aside>
+<!-- Sidebar overlay (mobile) -->
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
 
-<!-- MAIN -->
-<main class="flex-1 flex flex-col overflow-hidden min-w-0">
-  <!-- Topbar -->
-  <div class="flex items-center gap-2 px-3 py-2 border-b border-gray-700 flex-wrap" style="background:#1a1a2e">
-    <form class="flex gap-2 flex-1 min-w-0" method="get" action="/">
-      {% if selected_console %}<input type="hidden" name="console" value="{{ selected_console }}">{% endif %}
-      {% if selected_genre %}<input type="hidden" name="genre" value="{{ selected_genre }}">{% endif %}
-      {% if selected_status %}<input type="hidden" name="status" value="{{ selected_status }}">{% endif %}
-      <input name="search" value="{{ search }}" placeholder="Buscar…" class="inp text-sm" style="max-width:280px">
-      <button type="submit" class="btn btn-indigo">Buscar</button>
-      {% if search %}<a href="/?{% if selected_console %}console={{ selected_console }}{% endif %}" class="text-gray-500 hover:text-white px-1 text-lg leading-none">×</a>{% endif %}
-    </form>
-    <button onclick="openBulk()" class="btn btn-green">📋 Bulk</button>
-    <button onclick="openAdd()" class="btn btn-indigo">+ Añadir</button>
-  </div>
-
-  <!-- Quick paste -->
-  <div class="px-3 pt-2.5 pb-2">
-    <div class="quick-zone px-3 py-2">
-      <div class="text-xs text-gray-500 mb-1.5">⚡ Pega URL directa → descarga automática</div>
-      <form id="form-quick" class="flex gap-2">
-        <input id="quick-url" type="url" placeholder="https://... (.iso .nds .3ds .gba …)" class="inp text-sm flex-1">
-        <button type="submit" class="btn btn-green">⬇️ Descargar</button>
-      </form>
-      <div id="quick-fb" class="text-xs mt-1 hidden"></div>
+<div class="layout">
+  <!-- ── SIDEBAR ─────────────────────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div style="font-weight:700;color:#818cf8;font-size:15px;">🎮 ROM Library</div>
+      <div style="font-size:11px;color:#4b5563;margin-top:2px;">{{ total }} juegos · AYN Thor</div>
     </div>
-  </div>
-
-  <!-- Breadcrumb -->
-  <div class="px-3 py-1 text-xs text-gray-600 border-b border-gray-800 flex gap-2">
-    {% if selected_console %}<span class="text-indigo-400">{{ selected_console }}</span><span>·</span>{% endif %}
-    {% if selected_genre %}<span class="text-purple-400">{{ selected_genre }}</span><span>·</span>{% endif %}
-    {% if selected_status %}<span class="text-yellow-500">{{ selected_status }}</span><span>·</span>{% endif %}
-    <span>{{ games|length }} juego{{ 's' if games|length != 1 else '' }}</span>
-  </div>
-
-  <!-- Grid -->
-  <div class="flex-1 overflow-y-auto p-3">
-    {% if not games %}
-    <div class="flex flex-col items-center justify-center h-60 text-gray-600">
-      <div class="text-5xl mb-3">🎮</div>
-      <div class="font-medium">Biblioteca vacía</div>
-      <div class="text-xs mt-1">Pega una URL arriba o pulsa + Añadir</div>
-    </div>
-    {% else %}
-    <div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(145px,1fr))">
-      {% for game in games %}
-      <div class="card rounded-xl overflow-hidden cursor-pointer" onclick="openGame({{ game.id }})">
-        <div class="relative" style="height:185px">
-          {% if game.cover_url %}
-          <img src="{{ game.cover_url }}" class="w-full h-full object-cover"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-          <div class="cover-ph w-full h-full absolute inset-0" style="display:none"><span class="text-4xl">{{ console_emoji(game.console) }}</span></div>
-          {% else %}
-          <div class="cover-ph w-full h-full"><span class="text-4xl">{{ console_emoji(game.console) }}</span></div>
-          {% endif %}
-          <div class="absolute top-1.5 right-1.5">
-            <span class="badge-{{ game.status or 'pending' }} text-xs px-1.5 py-0.5 rounded-full">{{ status_icon(game.status) }}</span>
-          </div>
-          <div class="absolute bottom-1.5 left-1.5">
-            <span class="bg-black bg-opacity-75 text-xs px-1.5 py-0.5 rounded text-gray-300">{{ game.console }}</span>
-          </div>
-        </div>
-        <div class="p-2">
-          <div class="text-xs font-semibold leading-tight truncate" title="{{ game.title }}">{{ game.title }}</div>
-          <div class="text-xs text-gray-600 truncate">{{ game.year or '' }}{% if game.genre %} · {{ game.genre }}{% endif %}</div>
-          {% if game.status in ('downloading','queued') %}
-          <div class="mt-1.5 progress-bar"><div class="progress-fill" id="pb-{{ game.id }}" style="width:0%"></div></div>
-          <div class="text-xs text-gray-600 mt-0.5" id="spd-{{ game.id }}"></div>
-          {% endif %}
-        </div>
-      </div>
+    <nav class="sidebar-body">
+      <a href="/" class="nav-link {{ 'active' if not selected_console and not selected_status and not selected_genre else '' }}">
+        <span>Todos</span><span style="font-size:11px;color:#4b5563;">{{ total }}</span>
+      </a>
+      <div class="sect-label">Consolas</div>
+      {% for console in consoles %}
+      {% set cnt = console_counts.get(console, 0) %}
+      <a href="/?console={{ console }}" class="nav-link {{ 'active' if selected_console == console else '' }}">
+        <span>{{ console }}</span>
+        {% if cnt %}<span style="font-size:11px;background:#1e1b4b;color:#a5b4fc;padding:1px 7px;border-radius:999px;">{{ cnt }}</span>{% endif %}
+      </a>
       {% endfor %}
+      {% if genres %}
+      <div class="sect-label">Género</div>
+      {% for g in genres %}
+      <a href="/?genre={{ g }}{% if selected_console %}&console={{ selected_console }}{% endif %}" class="nav-link {{ 'active' if selected_genre == g else '' }}">{{ g }}</a>
+      {% endfor %}
+      {% endif %}
+      <div class="sect-label">Estado</div>
+      {% for s, label in [('owned','✅ Tengo'),('downloading','⬇️ Descargando'),('queued','🕐 En cola'),('pending','⏳ Pendiente'),('failed','❌ Error')] %}
+      <a href="/?status={{ s }}" class="nav-link {{ 'active' if selected_status == s else '' }}">{{ label }}</a>
+      {% endfor %}
+      <div class="sect-label">Páginas</div>
+      <a href="/sources" class="nav-link">🌐 Fuentes de ROMs</a>
+    </nav>
+    <div class="sidebar-footer" style="display:flex;flex-direction:column;gap:4px;">
+      <button onclick="openStats()" style="width:100%;text-align:left;font-size:12px;background:#1e1e32;border:none;color:#9ca3af;border-radius:7px;padding:7px 10px;cursor:pointer;">📊 Estadísticas</button>
+      <button onclick="scanRoms()" style="width:100%;text-align:left;font-size:12px;background:#1e1e32;border:none;color:#9ca3af;border-radius:7px;padding:7px 10px;cursor:pointer;">🔍 Escanear ROMs locales</button>
+      <button onclick="openDownloads()" id="dl-btn" style="width:100%;text-align:left;font-size:12px;background:#1e1e32;border:none;color:#9ca3af;border-radius:7px;padding:7px 10px;cursor:pointer;">⬇️ Descargas</button>
+      {% if igdb_enabled() %}<div style="font-size:10px;color:#059669;text-align:center;">● IGDB activo</div>{% endif %}
     </div>
-    {% endif %}
-  </div>
-</main>
+  </aside>
 
-<!-- ── MODAL: Stats ─────────────────────────────────────────────────────────── -->
-<div id="modal-stats" class="fixed inset-0 z-50 hidden modal-bg flex items-center justify-center p-4">
-  <div class="modal-box rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto">
-    <div class="p-5">
-      <div class="flex justify-between mb-4"><h2 class="text-lg font-bold">📊 Estadísticas</h2><button onclick="closeModal('modal-stats')" class="text-gray-500 hover:text-white text-2xl leading-none">&times;</button></div>
-      <div id="stats-content" class="space-y-4"></div>
+  <!-- ── MAIN ────────────────────────────────────────────────────────────── -->
+  <main class="main main-content">
+    <!-- Topbar -->
+    <div class="topbar">
+      <button class="hamburger" onclick="openSidebar()">☰</button>
+      <form class="search-form" method="get" action="/">
+        {% if selected_console %}<input type="hidden" name="console" value="{{ selected_console }}">{% endif %}
+        {% if selected_genre %}<input type="hidden" name="genre" value="{{ selected_genre }}">{% endif %}
+        {% if selected_status %}<input type="hidden" name="status" value="{{ selected_status }}">{% endif %}
+        <input name="search" value="{{ search }}" placeholder="Buscar juego…" class="inp search-input" style="font-size:14px;">
+        <button type="submit" class="btn btn-indigo btn-sm">Buscar</button>
+        {% if search %}<a href="/?{% if selected_console %}console={{ selected_console }}{% endif %}" style="color:#6b7280;font-size:20px;line-height:1;text-decoration:none;padding:0 2px;">×</a>{% endif %}
+      </form>
+      <div class="topbar-actions">
+        <button onclick="openBulk()" class="btn btn-green btn-sm hide-mobile">📋 Bulk</button>
+        <button onclick="openAdd()" class="btn btn-indigo btn-sm">+ Añadir</button>
+      </div>
+    </div>
+
+    <!-- Quick paste -->
+    <div style="padding: 10px 12px;">
+      <div class="quick-zone" style="padding:10px 12px;">
+        <div style="font-size:11px;color:#4b5563;margin-bottom:6px;">⚡ Pega URL directa y descarga automático</div>
+        <form id="form-quick" style="display:flex;gap:8px;">
+          <input id="quick-url" type="url" placeholder="https://… (.iso .nds .3ds .gba …)" class="inp" style="font-size:13px;">
+          <button type="submit" class="btn btn-green btn-sm" style="flex-shrink:0;">⬇️</button>
+        </form>
+        <div id="quick-fb" style="font-size:11px;margin-top:5px;display:none;"></div>
+      </div>
+    </div>
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+      {% if selected_console %}<span style="color:#818cf8;font-weight:600;">{{ selected_console }}</span><span>·</span>{% endif %}
+      {% if selected_genre %}<span style="color:#a78bfa;">{{ selected_genre }}</span><span>·</span>{% endif %}
+      {% if selected_status %}<span style="color:#fbbf24;">{{ selected_status }}</span><span>·</span>{% endif %}
+      <span>{{ games|length }} juego{{ 's' if games|length != 1 else '' }}</span>
+    </div>
+
+    <!-- Games grid -->
+    <div class="content-area">
+      {% if not games %}
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:50vh;color:#374151;text-align:center;gap:8px;">
+        <div style="font-size:52px;">🎮</div>
+        <div style="font-size:16px;font-weight:600;">Biblioteca vacía</div>
+        <div style="font-size:13px;">Pega una URL arriba o pulsa + Añadir</div>
+        <a href="/sources" style="margin-top:8px;color:#818cf8;font-size:13px;text-decoration:none;">Ver fuentes de descarga →</a>
+      </div>
+      {% else %}
+      <div class="games-grid">
+        {% for game in games %}
+        <div class="card" onclick="openGame({{ game.id }})">
+          <div style="position:relative;height:180px;">
+            {% if game.cover_url %}
+            <img src="{{ game.cover_url }}" style="width:100%;height:100%;object-fit:cover;"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="cover-ph" style="width:100%;height:100%;position:absolute;inset:0;display:none;"><span style="font-size:40px;">{{ console_emoji(game.console) }}</span></div>
+            {% else %}
+            <div class="cover-ph" style="width:100%;height:100%;"><span style="font-size:40px;">{{ console_emoji(game.console) }}</span></div>
+            {% endif %}
+            <span class="badge badge-{{ game.status or 'pending' }}" style="position:absolute;top:6px;right:6px;">{{ status_icon(game.status) }}</span>
+            <span style="position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.75);font-size:10px;padding:2px 6px;border-radius:4px;color:#d1d5db;">{{ game.console }}</span>
+          </div>
+          <div style="padding:8px;">
+            <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ game.title }}">{{ game.title }}</div>
+            <div style="font-size:11px;color:#4b5563;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ game.year or '' }}{% if game.genre %} · {{ game.genre }}{% endif %}</div>
+            {% if game.status in ('downloading','queued') %}
+            <div class="progress-bar" style="margin-top:5px;"><div class="progress-fill" id="pb-{{ game.id }}" style="width:0%"></div></div>
+            <div style="font-size:10px;color:#4b5563;margin-top:2px;" id="spd-{{ game.id }}"></div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </main>
+</div>
+
+<!-- ── Bottom nav (mobile) ──────────────────────────────────────────────────── -->
+<nav class="bottom-nav">
+  <button onclick="openSidebar()"><span class="icon">☰</span>Menú</button>
+  <a href="/"><span class="icon">🎮</span>Juegos</a>
+  <button onclick="openQuick()"><span class="icon">⬇️</span>Descargar</button>
+  <a href="/sources"><span class="icon">🌐</span>Fuentes</a>
+  <button onclick="openDownloads()" id="dl-btn-mobile"><span class="icon">📋</span>Cola</button>
+</nav>
+
+<!-- ── MODALS ───────────────────────────────────────────────────────────────── -->
+
+<!-- Stats -->
+<div class="modal-bg" id="modal-stats" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:520px;">
+    <div style="padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <span style="font-size:16px;font-weight:700;">📊 Estadísticas</span>
+        <button onclick="$id('modal-stats').style.display='none'" style="background:none;border:none;color:#6b7280;font-size:24px;cursor:pointer;line-height:1;">&times;</button>
+      </div>
+      <div id="stats-content" style="display:flex;flex-direction:column;gap:16px;"></div>
     </div>
   </div>
 </div>
 
-<!-- ── MODAL: Bulk ──────────────────────────────────────────────────────────── -->
-<div id="modal-bulk" class="fixed inset-0 z-50 hidden modal-bg flex items-center justify-center p-4">
-  <div class="modal-box rounded-2xl w-full max-w-2xl">
-    <div class="p-5">
-      <div class="flex justify-between mb-3"><h2 class="text-lg font-bold">📋 Bulk import</h2><button onclick="closeModal('modal-bulk')" class="text-gray-500 hover:text-white text-2xl leading-none">&times;</button></div>
-      <p class="text-xs text-gray-500 mb-2">Una URL por línea — la consola se detecta por extensión del archivo.</p>
-      <textarea id="bulk-urls" class="inp text-sm" rows="10" placeholder="https://.../GranTurismo_Spain.iso&#10;https://.../Pokemon_Rojo.gba&#10;https://.../Zelda.nds"></textarea>
-      <div class="flex justify-between items-center mt-3">
-        <span id="bulk-count" class="text-xs text-gray-500"></span>
-        <div class="flex gap-2">
-          <button onclick="closeModal('modal-bulk')" class="btn btn-gray">Cancelar</button>
-          <button onclick="submitBulk()" class="btn btn-green">⬇️ Descargar todo</button>
+<!-- Bulk import -->
+<div class="modal-bg" id="modal-bulk" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:640px;">
+    <div style="padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span style="font-size:16px;font-weight:700;">📋 Bulk import</span>
+        <button onclick="$id('modal-bulk').style.display='none'" style="background:none;border:none;color:#6b7280;font-size:24px;cursor:pointer;line-height:1;">&times;</button>
+      </div>
+      <p style="font-size:12px;color:#4b5563;margin:0 0 8px;">Una URL por línea. La consola se detecta por extensión del archivo.</p>
+      <textarea id="bulk-urls" class="inp" rows="10" placeholder="https://.../Gran_Turismo_Spain.iso&#10;https://.../Pokemon_Rojo.gba&#10;https://.../Zelda.nds"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
+        <span id="bulk-count" style="font-size:12px;color:#4b5563;"></span>
+        <div style="display:flex;gap:8px;">
+          <button onclick="$id('modal-bulk').style.display='none'" class="btn btn-gray btn-sm">Cancelar</button>
+          <button onclick="submitBulk()" class="btn btn-green btn-sm">⬇️ Descargar todo</button>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ── MODAL: Add / Edit ────────────────────────────────────────────────────── -->
-<div id="modal-add" class="fixed inset-0 z-50 hidden modal-bg flex items-center justify-center p-4">
-  <div class="modal-box rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
-    <div class="p-5">
-      <div class="flex justify-between mb-4"><h2 class="text-lg font-bold" id="add-title">Añadir juego</h2><button onclick="closeModal('modal-add')" class="text-gray-500 hover:text-white text-2xl leading-none">&times;</button></div>
-      <form id="form-add" class="space-y-3">
+<!-- Add / Edit -->
+<div class="modal-bg" id="modal-add" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:560px;">
+    <div style="padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <span id="add-title" style="font-size:16px;font-weight:700;">Añadir juego</span>
+        <button onclick="$id('modal-add').style.display='none'" style="background:none;border:none;color:#6b7280;font-size:24px;cursor:pointer;line-height:1;">&times;</button>
+      </div>
+      <form id="form-add" style="display:flex;flex-direction:column;gap:10px;">
         <input type="hidden" id="f-id">
-        <div class="grid grid-cols-2 gap-3">
-          <div class="col-span-2">
-            <label class="text-xs text-gray-500 block mb-1">Título *</label>
-            <input id="f-title" class="inp text-sm" placeholder="Nombre del juego" required>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div style="grid-column:1/-1;">
+            <label style="font-size:11px;color:#4b5563;display:block;margin-bottom:4px;">Título *</label>
+            <input id="f-title" class="inp" placeholder="Nombre del juego" required>
           </div>
           <div>
-            <label class="text-xs text-gray-500 block mb-1">Consola *</label>
-            <select id="f-console" class="inp text-sm">
+            <label style="font-size:11px;color:#4b5563;display:block;margin-bottom:4px;">Consola *</label>
+            <select id="f-console" class="inp">
               {% for c in consoles %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
             </select>
           </div>
           <div>
-            <label class="text-xs text-gray-500 block mb-1">Región</label>
-            <select id="f-region" class="inp text-sm">
+            <label style="font-size:11px;color:#4b5563;display:block;margin-bottom:4px;">Región</label>
+            <select id="f-region" class="inp">
               <option value="ES">España</option><option value="EU">Europa</option><option value="US">USA</option><option value="JP">Japón</option>
             </select>
           </div>
           <div>
-            <label class="text-xs text-gray-500 block mb-1">Género</label>
-            <input id="f-genre" class="inp text-sm" placeholder="Acción, RPG…">
+            <label style="font-size:11px;color:#4b5563;display:block;margin-bottom:4px;">Género</label>
+            <input id="f-genre" class="inp" placeholder="Acción, RPG…">
           </div>
           <div>
-            <label class="text-xs text-gray-500 block mb-1">Año</label>
-            <input id="f-year" type="number" class="inp text-sm" placeholder="2005">
+            <label style="font-size:11px;color:#4b5563;display:block;margin-bottom:4px;">Año</label>
+            <input id="f-year" type="number" class="inp" placeholder="2005">
           </div>
-          <div class="col-span-2">
-            <label class="text-xs text-gray-500 block mb-1">URL de descarga directa</label>
-            <input id="f-dl-url" type="url" class="inp text-sm" placeholder="https://…">
+          <div style="grid-column:1/-1;">
+            <label style="font-size:11px;color:#4b5563;display:block;margin-bottom:4px;">URL de descarga directa</label>
+            <input id="f-dl-url" type="url" class="inp" placeholder="https://…">
           </div>
-          <!-- Cover search -->
-          <div class="col-span-2">
-            <label class="text-xs text-gray-500 block mb-1">Portada</label>
-            <div class="flex gap-2">
-              <input id="f-cover-url" type="url" class="inp text-sm flex-1" placeholder="https://…/cover.jpg">
-              {% if igdb_enabled() %}
-              <button type="button" onclick="searchCovers()" class="btn btn-gray text-xs flex-shrink-0">🔍 Buscar</button>
-              {% endif %}
+          <div style="grid-column:1/-1;">
+            <label style="font-size:11px;color:#4b5563;display:block;margin-bottom:4px;">Portada</label>
+            <div style="display:flex;gap:6px;">
+              <input id="f-cover-url" type="url" class="inp" placeholder="https://…/cover.jpg">
+              {% if igdb_enabled() %}<button type="button" onclick="searchCovers()" class="btn btn-gray btn-sm">🔍</button>{% endif %}
             </div>
-            <div id="cover-results" class="grid gap-2 mt-2 hidden" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr))"></div>
+            <div id="cover-results" style="display:none;grid-template-columns:repeat(auto-fill,minmax(75px,1fr));gap:8px;margin-top:8px;"></div>
           </div>
-          <div class="col-span-2">
-            <label class="text-xs text-gray-500 block mb-1">Descripción</label>
-            <textarea id="f-desc" class="inp text-sm" rows="2" placeholder="Opcional…"></textarea>
+          <div style="grid-column:1/-1;">
+            <label style="font-size:11px;color:#4b5563;display:block;margin-bottom:4px;">Descripción</label>
+            <textarea id="f-desc" class="inp" rows="2" placeholder="Opcional…"></textarea>
           </div>
         </div>
-        <div class="flex gap-2 justify-end pt-1">
-          <button type="button" onclick="closeModal('modal-add')" class="btn btn-gray">Cancelar</button>
-          <button type="submit" id="btn-save" class="btn btn-indigo">Guardar</button>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:4px;">
+          <button type="button" onclick="$id('modal-add').style.display='none'" class="btn btn-gray btn-sm">Cancelar</button>
+          <button type="submit" id="btn-save" class="btn btn-indigo btn-sm">Guardar</button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
-<!-- ── MODAL: Game detail ───────────────────────────────────────────────────── -->
-<div id="modal-game" class="fixed inset-0 z-50 hidden modal-bg flex items-center justify-center p-4">
-  <div class="modal-box rounded-2xl w-full max-w-xl max-h-[85vh] overflow-y-auto">
-    <div class="p-5" id="game-content"><div class="text-center text-gray-600 py-8">Cargando…</div></div>
+<!-- Game detail -->
+<div class="modal-bg" id="modal-game" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:540px;">
+    <div style="padding:20px;" id="game-content"><div style="text-align:center;color:#4b5563;padding:32px;">Cargando…</div></div>
   </div>
 </div>
 
-<!-- ── MODAL: Downloads ─────────────────────────────────────────────────────── -->
-<div id="modal-dl" class="fixed inset-0 z-50 hidden modal-bg flex items-center justify-center p-4">
-  <div class="modal-box rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-    <div class="p-5">
-      <div class="flex justify-between mb-3"><h2 class="text-lg font-bold">⬇️ Descargas</h2><button onclick="closeModal('modal-dl')" class="text-gray-500 hover:text-white text-2xl leading-none">&times;</button></div>
-      <div id="dl-list" class="space-y-2"></div>
+<!-- Downloads -->
+<div class="modal-bg" id="modal-dl" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="max-width:620px;">
+    <div style="padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span style="font-size:16px;font-weight:700;">⬇️ Descargas</span>
+        <button onclick="$id('modal-dl').style.display='none'" style="background:none;border:none;color:#6b7280;font-size:24px;cursor:pointer;line-height:1;">&times;</button>
+      </div>
+      <div id="dl-list" style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;"></div>
     </div>
   </div>
 </div>
 
 <!-- Toast -->
-<div id="toast" class="fixed bottom-5 right-5 hidden z-[100]">
-  <div id="toast-msg" class="px-4 py-2.5 rounded-xl text-sm font-medium text-white shadow-2xl"></div>
+<div id="toast" style="display:none;">
+  <div id="toast-msg" style="padding:10px 18px;border-radius:12px;font-size:13px;font-weight:600;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.4);"></div>
 </div>
 
 <script>
 const CONSOLES = {{ consoles | tojson }};
 const SL = { owned:'✅ Tengo', downloading:'⬇️ Descargando', queued:'🕐 En cola', pending:'⏳ Pendiente', failed:'❌ Error' };
 
-// ── Utils ─────────────────────────────────────────────────────────────────────
 function $id(id) { return document.getElementById(id); }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function fmtSize(b) { if(!b)return'?'; const u=['B','KB','MB','GB']; let i=0; while(b>=1024&&i<3){b/=1024;i++;} return `${b.toFixed(1)} ${u[i]}`; }
-function openModal(id) { $id(id).classList.remove('hidden'); }
-function closeModal(id) { $id(id).classList.add('hidden'); }
-document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.add('hidden'); }));
+function fmtSize(b) { if(!b)return'?'; const u=['B','KB','MB','GB']; let i=0; while(b>=1024&&i<3){b/=1024;i++;} return`${b.toFixed(1)} ${u[i]}`; }
+function fmtSpd(b) { if(!b)return''; if(b<1024)return`${b}B/s`; if(b<1048576)return`${(b/1024).toFixed(0)}KB/s`; return`${(b/1048576).toFixed(1)}MB/s`; }
+function fmtEta(s) { if(!s||s>86400)return''; if(s<60)return`${s}s`; if(s<3600)return`${Math.floor(s/60)}m ${s%60}s`; return`${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m`; }
 
-let _toastTimer;
+// ── Sidebar (mobile) ──────────────────────────────────────────────────────────
+function openSidebar()  { $id('sidebar').classList.add('open'); $id('overlay').classList.add('open'); }
+function closeSidebar() { $id('sidebar').classList.remove('open'); $id('overlay').classList.remove('open'); }
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let _tt;
 function toast(msg, color='#6366f1') {
   const t=$id('toast'), m=$id('toast-msg');
   m.textContent=msg; m.style.background=color;
-  t.classList.remove('hidden');
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(()=>t.classList.add('hidden'), 3500);
+  t.style.display='block'; clearTimeout(_tt);
+  _tt=setTimeout(()=>t.style.display='none', 3500);
 }
 
 // ── Quick paste ───────────────────────────────────────────────────────────────
 $id('form-quick').addEventListener('submit', async e => {
   e.preventDefault();
-  const url = $id('quick-url').value.trim();
-  if (!url) return;
-  const fb = $id('quick-fb');
-  fb.textContent = '⏳ Iniciando…'; fb.className='text-xs mt-1 text-yellow-400'; fb.classList.remove('hidden');
-  const fd = new FormData(); fd.append('url', url);
-  const r = await fetch('/api/quick-add', {method:'POST', body:fd});
-  if (r.ok) {
-    const g = await r.json();
-    fb.textContent = `✅ "${g.title}" (${g.console}) — en cola`; fb.className='text-xs mt-1 text-green-400';
-    $id('quick-url').value = '';
+  const url=$id('quick-url').value.trim(); if(!url)return;
+  const fb=$id('quick-fb');
+  fb.textContent='⏳ Iniciando…'; fb.style.color='#fbbf24'; fb.style.display='block';
+  const fd=new FormData(); fd.append('url',url);
+  const r=await fetch('/api/quick-add',{method:'POST',body:fd});
+  if(r.ok){
+    const g=await r.json();
+    fb.textContent=`✅ "${g.title}" (${g.console})`; fb.style.color='#6ee7b7';
+    $id('quick-url').value='';
     toast(`⬇️ ${g.title}`, '#059669');
     setTimeout(()=>location.reload(), 1200);
   } else {
-    fb.textContent = '❌ URL inválida o no es un archivo ROM directo'; fb.className='text-xs mt-1 text-red-400';
+    fb.textContent='❌ URL inválida — debe ser enlace directo a archivo ROM'; fb.style.color='#f87171';
   }
 });
 
+function openQuick() {
+  window.scrollTo({top:0,behavior:'smooth'});
+  setTimeout(()=>$id('quick-url').focus(), 300);
+}
+
 // ── Bulk ──────────────────────────────────────────────────────────────────────
-function openBulk() { openModal('modal-bulk'); $id('bulk-urls').value=''; $id('bulk-count').textContent=''; }
+function openBulk() { $id('modal-bulk').style.display='flex'; $id('bulk-urls').value=''; $id('bulk-count').textContent=''; }
 $id('bulk-urls').addEventListener('input', e => {
-  const n = e.target.value.split('\n').filter(l=>l.trim().startsWith('http')).length;
-  $id('bulk-count').textContent = n ? `${n} URLs detectadas` : '';
+  const n=e.target.value.split('\n').filter(l=>l.trim().startsWith('http')).length;
+  $id('bulk-count').textContent=n?`${n} URLs detectadas`:'';
 });
 async function submitBulk() {
-  const urls = $id('bulk-urls').value.trim(); if(!urls) return;
-  const fd = new FormData(); fd.append('urls', urls);
-  toast('⏳ Procesando…', '#1e40af');
-  const r = await fetch('/api/bulk-add', {method:'POST', body:fd});
-  if (r.ok) {
-    const res = await r.json();
-    closeModal('modal-bulk');
-    toast(`✅ ${res.added} descargas iniciadas`, '#059669');
-    setTimeout(()=>location.reload(), 1000);
-  } else toast('❌ Error', '#dc2626');
+  const urls=$id('bulk-urls').value.trim(); if(!urls)return;
+  const fd=new FormData(); fd.append('urls',urls);
+  toast('⏳ Procesando…','#1e40af');
+  const r=await fetch('/api/bulk-add',{method:'POST',body:fd});
+  if(r.ok){ const res=await r.json(); $id('modal-bulk').style.display='none'; toast(`✅ ${res.added} descargas iniciadas`,'#059669'); setTimeout(()=>location.reload(),900); }
+  else toast('❌ Error','#dc2626');
 }
 
 // ── Add / Edit ────────────────────────────────────────────────────────────────
 function openAdd(prefill=null) {
   $id('add-title').textContent='Añadir juego'; $id('f-id').value='';
-  $id('form-add').reset(); $id('cover-results').classList.add('hidden');
-  if(prefill) $id('f-console').value=prefill;
+  $id('form-add').reset(); $id('cover-results').style.display='none';
+  if(prefill)$id('f-console').value=prefill;
   $id('btn-save').textContent='Guardar';
-  openModal('modal-add');
+  $id('modal-add').style.display='flex';
 }
-$id('form-add').addEventListener('submit', async e => {
+$id('form-add').addEventListener('submit', async e=>{
   e.preventDefault();
-  const id = $id('f-id').value;
-  const fd = new FormData();
-  fd.append('title', $id('f-title').value.trim());
-  fd.append('console', $id('f-console').value);
-  fd.append('genre', $id('f-genre').value.trim());
-  fd.append('region', $id('f-region').value);
-  fd.append('year', $id('f-year').value||'');
-  fd.append('cover_url', $id('f-cover-url').value.trim());
-  fd.append('description', $id('f-desc').value.trim());
-  fd.append('download_url', $id('f-dl-url').value.trim());
-  const r = await fetch(id?`/api/games/${id}`:'/api/games', {method:id?'PUT':'POST', body:fd});
-  if (r.ok) {
-    closeModal('modal-add');
-    toast($id('f-dl-url').value.trim() ? '⬇️ Descarga iniciada!' : '✅ Guardado', '#059669');
-    setTimeout(()=>location.reload(), 900);
-  } else toast('❌ Error al guardar', '#dc2626');
+  const id=$id('f-id').value;
+  const fd=new FormData();
+  ['title','console','genre','region','year','cover_url','description','dl_url'].forEach(k=>{
+    const el=$id('f-'+k); if(el) fd.append(k==='dl_url'?'download_url':k, el.value.trim());
+  });
+  const r=await fetch(id?`/api/games/${id}`:'/api/games',{method:id?'PUT':'POST',body:fd});
+  if(r.ok){
+    $id('modal-add').style.display='none';
+    toast($id('f-dl_url').value.trim()?'⬇️ Descarga iniciada':'✅ Guardado','#059669');
+    setTimeout(()=>location.reload(),900);
+  } else toast('❌ Error al guardar','#dc2626');
 });
 
 // ── Cover search ──────────────────────────────────────────────────────────────
 async function searchCovers() {
-  const title = $id('f-title').value.trim();
-  const console_ = $id('f-console').value;
-  if (!title) { toast('Escribe el título primero', '#374151'); return; }
-  const el = $id('cover-results');
-  el.innerHTML = '<div class="col-span-full text-xs text-gray-500">Buscando…</div>';
-  el.classList.remove('hidden');
-  const r = await fetch(`/api/covers/search?q=${encodeURIComponent(title)}&console=${encodeURIComponent(console_)}`);
-  const results = await r.json();
-  if (!results.length) { el.innerHTML='<div class="col-span-full text-xs text-gray-600">Sin resultados</div>'; return; }
-  el.innerHTML = results.map((g,i) => `
-    <div class="cover-pick" onclick="selectCover(this,'${esc(g.cover_url)}','${esc(g.title)}','${g.year||''}','${esc(g.genre||'')}')">
-      ${g.cover_url
-        ? `<img src="${esc(g.cover_url)}" class="w-full rounded-lg" style="aspect-ratio:3/4;object-fit:cover" onerror="this.parentElement.style.display='none'">`
-        : `<div class="w-full rounded-lg cover-ph text-2xl" style="aspect-ratio:3/4">🎮</div>`}
-      <div class="text-xs text-center mt-1 truncate text-gray-400">${esc(g.title)}</div>
+  const title=$id('f-title').value.trim(), con=$id('f-console').value;
+  if(!title){toast('Escribe el título primero','#374151');return;}
+  const el=$id('cover-results');
+  el.style.display='grid'; el.innerHTML='<div style="grid-column:1/-1;font-size:12px;color:#4b5563;">Buscando…</div>';
+  const res=await fetch(`/api/covers/search?q=${encodeURIComponent(title)}&console=${encodeURIComponent(con)}`).then(r=>r.json());
+  if(!res.length){el.innerHTML='<div style="grid-column:1/-1;font-size:12px;color:#374151;">Sin resultados</div>';return;}
+  el.innerHTML=res.map(g=>`
+    <div class="cover-pick" onclick="pickCover(this,'${esc(g.cover_url)}','${esc(g.title)}','${g.year||''}','${esc(g.genre||'')}')">
+      ${g.cover_url?`<img src="${esc(g.cover_url)}" style="width:100%;border-radius:6px;aspect-ratio:3/4;object-fit:cover;" onerror="this.parentElement.style.display='none'">`:`<div class="cover-ph" style="aspect-ratio:3/4;border-radius:6px;font-size:24px;">🎮</div>`}
+      <div style="font-size:10px;text-align:center;margin-top:3px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(g.title)}</div>
     </div>`).join('');
 }
-function selectCover(el, coverUrl, title, year, genre) {
+function pickCover(el,url,title,year,genre){
   document.querySelectorAll('.cover-pick').forEach(c=>c.classList.remove('selected'));
   el.classList.add('selected');
-  if (coverUrl) $id('f-cover-url').value = coverUrl;
-  if (!$id('f-title').value.trim() && title) $id('f-title').value = title;
-  if (!$id('f-year').value && year) $id('f-year').value = year;
-  if (!$id('f-genre').value && genre) $id('f-genre').value = genre;
+  if(url)$id('f-cover-url').value=url;
+  if(!$id('f-title').value.trim()&&title)$id('f-title').value=title;
+  if(!$id('f-year').value&&year)$id('f-year').value=year;
+  if(!$id('f-genre').value&&genre)$id('f-genre').value=genre;
 }
 
 // ── Game detail ───────────────────────────────────────────────────────────────
-async function openGame(id) {
-  openModal('modal-game');
-  const g = await fetch(`/api/games/${id}`).then(r=>r.json());
-  $id('game-content').innerHTML = `
-    <div class="flex gap-4 mb-4">
-      <div class="relative flex-shrink-0 w-28 rounded-xl overflow-hidden" style="height:168px">
-        ${g.cover_url
-          ? `<img src="${esc(g.cover_url)}" class="w-full h-full object-cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="cover-ph w-full h-full absolute inset-0 hidden"><span class="text-4xl">🎮</span></div>`
-          : `<div class="cover-ph w-full h-full"><span class="text-4xl">🎮</span></div>`}
+async function openGame(id){
+  $id('modal-game').style.display='flex';
+  const g=await fetch(`/api/games/${id}`).then(r=>r.json());
+  $id('game-content').innerHTML=`
+    <div style="display:flex;gap:14px;margin-bottom:14px;">
+      <div style="position:relative;flex-shrink:0;width:100px;height:140px;border-radius:10px;overflow:hidden;">
+        ${g.cover_url?`<img src="${esc(g.cover_url)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="cover-ph" style="width:100%;height:100%;position:absolute;inset:0;display:none;font-size:32px;">🎮</div>`:`<div class="cover-ph" style="width:100%;height:100%;font-size:32px;">🎮</div>`}
       </div>
-      <div class="flex-1 min-w-0">
-        <div class="text-lg font-bold leading-snug mb-1">${esc(g.title)}</div>
-        <div class="text-indigo-400 text-sm mb-2">${g.console}</div>
-        <div class="flex flex-wrap gap-1.5 mb-2">
-          ${g.genre?`<span class="text-xs bg-purple-900 text-purple-300 px-2 py-0.5 rounded">${g.genre}</span>`:''}
-          ${g.region?`<span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">${g.region}</span>`:''}
-          ${g.year?`<span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">${g.year}</span>`:''}
-          <span class="text-xs badge-${g.status||'pending'} px-2 py-0.5 rounded">${SL[g.status]||g.status}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:17px;font-weight:700;line-height:1.3;margin-bottom:4px;">${esc(g.title)}</div>
+        <div style="color:#818cf8;font-size:13px;margin-bottom:8px;">${g.console}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">
+          ${g.genre?`<span class="badge" style="background:#3b0764;color:#c4b5fd;">${g.genre}</span>`:''}
+          ${g.region?`<span class="badge" style="background:#1f2937;color:#9ca3af;">${g.region}</span>`:''}
+          ${g.year?`<span class="badge" style="background:#1f2937;color:#9ca3af;">${g.year}</span>`:''}
+          <span class="badge badge-${g.status||'pending'}">${SL[g.status]||g.status}</span>
         </div>
-        ${g.file_path?`<div class="text-xs text-gray-600 truncate">📁 ${esc(g.file_path.split('/').slice(-3).join('/'))}</div>`:''}
-        ${g.file_size?`<div class="text-xs text-gray-600">💾 ${fmtSize(g.file_size)}</div>`:''}
+        ${g.file_path?`<div style="font-size:11px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📁 ${esc(g.file_path.split('/').slice(-3).join('/'))}</div>`:''}
+        ${g.file_size?`<div style="font-size:11px;color:#374151;">💾 ${fmtSize(g.file_size)}</div>`:''}
       </div>
     </div>
-    ${g.description?`<p class="text-sm text-gray-400 mb-3 leading-relaxed">${esc(g.description)}</p>`:''}
-    ${g.download_url?`<div class="text-xs text-gray-700 mb-3 break-all">🔗 ${esc(g.download_url)}</div>`:''}
-    <div class="flex gap-2 flex-wrap">
-      <button onclick="editGame(${g.id})" class="btn btn-indigo">✏️ Editar</button>
-      ${g.download_url&&g.status!=='owned'?`<button onclick="retryDownload(${g.id})" class="btn btn-green">⬇️ Re-descargar</button>`:''}
-      <button onclick="delGame(${g.id})" class="btn btn-red">🗑️ Borrar</button>
+    ${g.description?`<p style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:12px;">${esc(g.description)}</p>`:''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button onclick="editGame(${g.id})" class="btn btn-indigo btn-sm">✏️ Editar</button>
+      ${g.download_url&&g.status!=='owned'?`<button onclick="retryDl(${g.id})" class="btn btn-green btn-sm">⬇️ Re-descargar</button>`:''}
+      <button onclick="delGame(${g.id})" class="btn btn-red btn-sm">🗑️ Borrar</button>
     </div>`;
 }
-
-async function editGame(id) {
-  const g = await fetch(`/api/games/${id}`).then(r=>r.json());
+async function editGame(id){
+  const g=await fetch(`/api/games/${id}`).then(r=>r.json());
   $id('f-id').value=id; $id('f-title').value=g.title||''; $id('f-console').value=g.console||'';
   $id('f-genre').value=g.genre||''; $id('f-region').value=g.region||'ES';
   $id('f-year').value=g.year||''; $id('f-cover-url').value=g.cover_url||'';
-  $id('f-desc').value=g.description||''; $id('f-dl-url').value=g.download_url||'';
+  $id('f-desc').value=g.description||''; $id('f-dl_url').value=g.download_url||'';
   $id('add-title').textContent='Editar juego'; $id('btn-save').textContent='Actualizar';
-  $id('cover-results').classList.add('hidden');
-  closeModal('modal-game'); openModal('modal-add');
+  $id('cover-results').style.display='none';
+  $id('modal-game').style.display='none'; $id('modal-add').style.display='flex';
 }
-
-async function retryDownload(id) {
-  const g = await fetch(`/api/games/${id}`).then(r=>r.json());
-  if (!g.download_url) return;
+async function retryDl(id){
+  const g=await fetch(`/api/games/${id}`).then(r=>r.json());
+  if(!g.download_url)return;
   const fd=new FormData(); fd.append('download_url',g.download_url); fd.append('status','downloading');
-  await fetch(`/api/games/${id}`, {method:'PUT', body:fd});
-  toast('⬇️ Re-descarga iniciada', '#059669'); closeModal('modal-game');
-  setTimeout(()=>location.reload(), 800);
+  await fetch(`/api/games/${id}`,{method:'PUT',body:fd});
+  toast('⬇️ Re-descarga iniciada','#059669'); $id('modal-game').style.display='none';
+  setTimeout(()=>location.reload(),800);
 }
-
-async function delGame(id) {
-  if (!confirm('¿Eliminar este juego de la biblioteca?')) return;
-  await fetch(`/api/games/${id}`, {method:'DELETE'});
-  closeModal('modal-game'); toast('Eliminado', '#374151');
-  setTimeout(()=>location.reload(), 600);
+async function delGame(id){
+  if(!confirm('¿Eliminar este juego de la biblioteca?'))return;
+  await fetch(`/api/games/${id}`,{method:'DELETE'});
+  $id('modal-game').style.display='none'; toast('Eliminado','#374151');
+  setTimeout(()=>location.reload(),600);
 }
 
 // ── Downloads modal ───────────────────────────────────────────────────────────
-async function openDownloads() { openModal('modal-dl'); await refreshDlModal(); }
-async function refreshDlModal() {
-  const dls = await fetch('/api/downloads').then(r=>r.json());
-  const el = $id('dl-list');
-  if (!dls.length) { el.innerHTML='<div class="text-gray-600 text-center py-6">Sin descargas</div>'; return; }
-  el.innerHTML = dls.map(d=>`
-    <div class="bg-gray-800 rounded-xl p-3">
-      <div class="flex justify-between items-start">
-        <div class="min-w-0 flex-1"><div class="text-sm font-medium truncate">${esc(d.title||'?')}</div><div class="text-xs text-indigo-400">${d.console}</div></div>
-        <span class="badge-${d.status} text-xs px-2 py-0.5 rounded-full ml-2 flex-shrink-0">${d.status}</span>
+async function openDownloads(){ $id('modal-dl').style.display='flex'; await refreshDl(); }
+async function refreshDl(){
+  const dls=await fetch('/api/downloads').then(r=>r.json());
+  const el=$id('dl-list');
+  if(!dls.length){el.innerHTML='<div style="text-align:center;color:#374151;padding:24px;">Sin descargas registradas</div>';return;}
+  el.innerHTML=dls.map(d=>`
+    <div style="background:#1e1e32;border-radius:10px;padding:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div style="min-width:0;flex:1;">
+          <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(d.title||'?')}</div>
+          <div style="font-size:11px;color:#818cf8;">${d.console}</div>
+        </div>
+        <span class="badge badge-${d.status}" style="margin-left:8px;flex-shrink:0;">${d.status}</span>
       </div>
       ${d.status==='downloading'||d.status==='queued'?`
-        <div class="progress-bar mt-2"><div class="progress-fill" style="width:${d.progress}%"></div></div>
-        <div class="flex justify-between text-xs text-gray-600 mt-0.5">
-          <span>${d.progress}% ${d.speed?'· '+fmtSpd(d.speed):''}</span>
-          <span>${d.eta?fmtEta(d.eta):''}</span>
+        <div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" style="width:${d.progress}%"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#4b5563;margin-top:3px;">
+          <span>${d.progress}%${d.speed?' · '+fmtSpd(d.speed):''}</span>
+          <span>${d.eta?'ETA '+fmtEta(d.eta):''}</span>
         </div>`:''}
-      ${d.error?`<div class="text-xs text-red-400 mt-1">${esc(d.error)}</div>`:''}
+      ${d.error?`<div style="font-size:11px;color:#f87171;margin-top:4px;">${esc(d.error)}</div>`:''}
     </div>`).join('');
 }
 
-function fmtSpd(b) { if(!b)return''; if(b<1024)return`${b}B/s`; if(b<1048576)return`${(b/1024).toFixed(0)}KB/s`; return`${(b/1048576).toFixed(1)}MB/s`; }
-function fmtEta(s) { if(!s||s>86400)return''; if(s<60)return`${s}s`; if(s<3600)return`${Math.floor(s/60)}m${s%60}s`; return`${Math.floor(s/3600)}h${Math.floor((s%3600)/60)}m`; }
-
-// ── Stats modal ───────────────────────────────────────────────────────────────
-async function openStats() {
-  openModal('modal-stats');
-  const s = await fetch('/api/stats').then(r=>r.json());
-  const disk = s.disk;
-  const maxSize = disk.by_console.reduce((m,c)=>Math.max(m,c.size||0),1);
-  const statusColors = {owned:'#059669',downloading:'#3b82f6',queued:'#8b5cf6',pending:'#d97706',failed:'#dc2626'};
-  $id('stats-content').innerHTML = `
-    <div class="grid grid-cols-3 gap-3 text-center">
-      <div class="bg-gray-800 rounded-xl p-3"><div class="text-2xl font-bold text-indigo-400">${s.total}</div><div class="text-xs text-gray-500">Total</div></div>
-      <div class="bg-gray-800 rounded-xl p-3"><div class="text-2xl font-bold text-green-400">${s.by_status.owned||0}</div><div class="text-xs text-gray-500">Descargados</div></div>
-      <div class="bg-gray-800 rounded-xl p-3"><div class="text-2xl font-bold text-yellow-400">${fmtSize(disk.total_size)}</div><div class="text-xs text-gray-500">En disco</div></div>
+// ── Stats ─────────────────────────────────────────────────────────────────────
+async function openStats(){
+  $id('modal-stats').style.display='flex';
+  const s=await fetch('/api/stats').then(r=>r.json());
+  const disk=s.disk, maxSz=disk.by_console.reduce((m,c)=>Math.max(m,c.size||0),1);
+  const stColors={owned:'#059669',downloading:'#3b82f6',queued:'#8b5cf6',pending:'#d97706',failed:'#dc2626'};
+  $id('stats-content').innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;">
+      <div style="background:#1e1e32;border-radius:10px;padding:12px;"><div style="font-size:22px;font-weight:700;color:#818cf8;">${s.total}</div><div style="font-size:11px;color:#4b5563;">Total</div></div>
+      <div style="background:#1e1e32;border-radius:10px;padding:12px;"><div style="font-size:22px;font-weight:700;color:#6ee7b7;">${s.by_status.owned||0}</div><div style="font-size:11px;color:#4b5563;">Descargados</div></div>
+      <div style="background:#1e1e32;border-radius:10px;padding:12px;"><div style="font-size:22px;font-weight:700;color:#fbbf24;">${fmtSize(disk.total_size)}</div><div style="font-size:11px;color:#4b5563;">En disco</div></div>
     </div>
     <div>
-      <div class="text-xs text-gray-500 mb-2 uppercase tracking-wider">Por consola</div>
-      <div class="space-y-2">
-        ${disk.by_console.map(c=>`
-          <div>
-            <div class="flex justify-between text-xs mb-1"><span>${c.console}</span><span class="text-gray-500">${c.count} juego${c.count!==1?'s':''} · ${fmtSize(c.size)}</span></div>
-            <div class="stat-bar"><div class="stat-fill" style="width:${Math.round((c.size/maxSize)*100)}%"></div></div>
-          </div>`).join('')}
-      </div>
+      <div style="font-size:10px;color:#4b5563;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Por consola</div>
+      ${disk.by_console.map(c=>`
+        <div style="margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+            <span>${c.console}</span><span style="color:#4b5563;">${c.count} · ${fmtSize(c.size)}</span>
+          </div>
+          <div class="stat-bar"><div class="stat-fill" style="width:${Math.round(c.size/maxSz*100)}%"></div></div>
+        </div>`).join('')}
     </div>
-    <div>
-      <div class="text-xs text-gray-500 mb-2 uppercase tracking-wider">Estado</div>
-      <div class="flex flex-wrap gap-2">
-        ${Object.entries(s.by_status).map(([k,v])=>`<div class="flex items-center gap-1.5 bg-gray-800 rounded-lg px-3 py-1.5"><div class="w-2 h-2 rounded-full" style="background:${statusColors[k]||'#6b7280'}"></div><span class="text-sm">${SL[k]||k}</span><span class="text-gray-500 text-sm">${v}</span></div>`).join('')}
-      </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      ${Object.entries(s.by_status).map(([k,v])=>`<div style="display:flex;align-items:center;gap:6px;background:#1e1e32;border-radius:8px;padding:6px 12px;"><div style="width:8px;height:8px;border-radius:50%;background:${stColors[k]||'#4b5563'}"></div><span style="font-size:13px;">${SL[k]||k}</span><span style="color:#4b5563;font-size:13px;">${v}</span></div>`).join('')}
     </div>
-    <div>
-      <div class="text-xs text-gray-500 mb-2 uppercase tracking-wider">Cola de descargas</div>
-      <div class="bg-gray-800 rounded-xl p-3 flex gap-4 text-center">
-        <div class="flex-1"><div class="text-xl font-bold text-blue-400">${s.queue.active}</div><div class="text-xs text-gray-500">Activas</div></div>
-        <div class="flex-1"><div class="text-xl font-bold text-purple-400">${s.queue.queued}</div><div class="text-xs text-gray-500">En cola</div></div>
-        <div class="flex-1"><div class="text-xl font-bold text-gray-400">${s.queue.max}</div><div class="text-xs text-gray-500">Máx. concurrentes</div></div>
-      </div>
+    <div style="background:#1e1e32;border-radius:10px;padding:12px;display:flex;gap:16px;text-align:center;">
+      <div style="flex:1;"><div style="font-size:20px;font-weight:700;color:#60a5fa;">${s.queue.active}</div><div style="font-size:11px;color:#4b5563;">Descargando</div></div>
+      <div style="flex:1;"><div style="font-size:20px;font-weight:700;color:#a78bfa;">${s.queue.queued}</div><div style="font-size:11px;color:#4b5563;">En cola</div></div>
+      <div style="flex:1;"><div style="font-size:20px;font-weight:700;color:#4b5563;">${s.queue.max}</div><div style="font-size:11px;color:#4b5563;">Máx. simultáneas</div></div>
     </div>`;
 }
 
 // ── Scan ──────────────────────────────────────────────────────────────────────
-async function scanRoms() {
-  toast('🔍 Escaneando ~/roms/…', '#1e40af');
-  await fetch('/api/scan', {method:'POST'});
-  toast('✅ Escaneo completado', '#059669');
-  setTimeout(()=>location.reload(), 1200);
+async function scanRoms(){
+  toast('🔍 Escaneando ~/roms/…','#1e40af');
+  await fetch('/api/scan',{method:'POST'});
+  toast('✅ Escaneo completado','#059669');
+  setTimeout(()=>location.reload(),1200);
 }
 
-// ── Live download progress ────────────────────────────────────────────────────
-async function pollActive() {
-  try {
-    const active = await fetch('/api/downloads/active').then(r=>r.json());
-    const dlBtn = $id('dl-btn');
-    if (active.length) {
-      dlBtn.textContent = `⬇️ Descargas (${active.length})`;
-      dlBtn.style.color = '#60a5fa';
+// ── Live progress poll ────────────────────────────────────────────────────────
+async function pollActive(){
+  try{
+    const active=await fetch('/api/downloads/active').then(r=>r.json());
+    const dlBtn=$id('dl-btn'), dlBtnM=$id('dl-btn-mobile');
+    if(active.length){
+      if(dlBtn){ dlBtn.textContent=`⬇️ Descargas (${active.length})`; dlBtn.style.color='#60a5fa'; }
+      if(dlBtnM){ dlBtnM.innerHTML=`<span class="icon">📋</span>Cola (${active.length})`; dlBtnM.style.color='#60a5fa'; }
     } else {
-      dlBtn.textContent = '⬇️ Descargas';
-      dlBtn.style.color = '';
+      if(dlBtn){ dlBtn.textContent='⬇️ Descargas'; dlBtn.style.color=''; }
+      if(dlBtnM){ dlBtnM.innerHTML='<span class="icon">📋</span>Cola'; dlBtnM.style.color=''; }
     }
-    active.forEach(d => {
-      const pb = $id(`pb-${d.game_id}`);
-      if (pb) pb.style.width = d.progress + '%';
-      const spd = $id(`spd-${d.game_id}`);
-      if (spd) spd.textContent = [d.speed_str, d.eta_str ? `ETA ${d.eta_str}` : ''].filter(Boolean).join(' · ');
+    active.forEach(d=>{
+      const pb=$id(`pb-${d.game_id}`); if(pb) pb.style.width=d.progress+'%';
+      const sp=$id(`spd-${d.game_id}`); if(sp) sp.textContent=[d.speed_str,d.eta_str?`ETA ${d.eta_str}`:''].filter(Boolean).join(' · ');
     });
-    // refresh dl modal if open
-    if (!$id('modal-dl').classList.contains('hidden')) refreshDlModal();
-  } catch {}
+    if(!$id('modal-dl').style.display||$id('modal-dl').style.display==='flex') refreshDl();
+  }catch{}
 }
-setInterval(pollActive, 2500);
+setInterval(pollActive,2500);
 pollActive();
 </script>
 </body>
