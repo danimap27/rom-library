@@ -102,7 +102,21 @@ def clean_title(filename: str) -> str:
 
 
 def url_to_game_info(url: str) -> dict:
-    """Extract game info from a download URL."""
+    """Extract game info from a download URL, magnet link or .torrent URL."""
+    if url.startswith("magnet:"):
+        from urllib.parse import parse_qs
+        params = parse_qs(url[8:])
+        dn_list = params.get("dn", [])
+        filename = unquote(dn_list[0]) if dn_list else "torrent_download"
+        ext = Path(filename).suffix.lower()
+        console = EXT_TO_CONSOLE.get(ext, "Unknown")
+        return {
+            "title": clean_title(filename) or "Torrent Download",
+            "console": console,
+            "region": _detect_region(filename),
+            "filename": filename,
+            "extension": ext,
+        }
     parsed = urlparse(url)
     filename = unquote(parsed.path.split("/")[-1])
     ext = Path(filename).suffix.lower()

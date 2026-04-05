@@ -64,6 +64,7 @@
       <button onclick="scanRoms()" style="width:100%;text-align:left;font-size:12px;background:#1e1e32;border:none;color:#9ca3af;border-radius:7px;padding:7px 10px;cursor:pointer;">🔍 Escanear ROMs locales</button>
       <button onclick="openDownloads()" id="dl-btn" style="width:100%;text-align:left;font-size:12px;background:#1e1e32;border:none;color:#9ca3af;border-radius:7px;padding:7px 10px;cursor:pointer;">⬇️ Descargas</button>
       {% if igdb_enabled() %}<div style="font-size:10px;color:#059669;text-align:center;">● IGDB activo</div>{% endif %}
+      <div id="aria2-status" style="font-size:10px;text-align:center;color:#374151;">⏳ aria2…</div>
     </div>
   </aside>
 
@@ -89,9 +90,9 @@
     <!-- Quick paste -->
     <div style="padding: 10px 12px;">
       <div class="quick-zone" style="padding:10px 12px;">
-        <div style="font-size:11px;color:#4b5563;margin-bottom:6px;">⚡ Pega URL directa y descarga automático</div>
+        <div style="font-size:11px;color:#4b5563;margin-bottom:6px;">⚡ Pega URL, magnet o .torrent — descarga vía <strong style="color:#6ee7b7;">aria2</strong></div>
         <form id="form-quick" style="display:flex;gap:8px;">
-          <input id="quick-url" type="url" placeholder="https://… (.iso .nds .3ds .gba …)" class="inp" style="font-size:13px;">
+          <input id="quick-url" class="inp" placeholder="https://… · magnet:?xt=… · .torrent" style="font-size:13px;">
           <button type="submit" class="btn btn-green btn-sm" style="flex-shrink:0;">⬇️</button>
         </form>
         <div id="quick-fb" style="font-size:11px;margin-top:5px;display:none;"></div>
@@ -525,6 +526,17 @@ async function pollActive(){
 }
 setInterval(pollActive,2500);
 pollActive();
+
+// ── Aria2 status ──────────────────────────────────────────────────────────────
+async function checkAria2(){
+  try{
+    const r=await fetch('/api/aria2/status').then(r=>r.json());
+    const el=$id('aria2-status');
+    if(r.online){ el.textContent=`● aria2 v${r.version}`; el.style.color='#059669'; }
+    else { el.textContent='○ aria2 offline'; el.style.color='#dc2626'; }
+  }catch{}
+}
+checkAria2();
 </script>
 </body>
 </html>

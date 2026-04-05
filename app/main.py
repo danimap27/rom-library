@@ -11,7 +11,7 @@ from .database import (
     get_disk_stats,
 )
 from .scanner import scan_directory, CONSOLES, CONSOLE_EXTENSIONS, url_to_game_info
-from .downloader import download_rom, format_size, format_speed, format_eta, queue_status
+from .downloader import download_rom, format_size, format_speed, format_eta, queue_status, aria2_version
 from .metadata import fetch_metadata, is_igdb_configured, search_covers
 
 BASE_DIR = Path(__file__).parent.parent
@@ -160,8 +160,10 @@ async def api_scan(background_tasks: BackgroundTasks):
 
 @app.post("/api/quick-add")
 async def api_quick_add(background_tasks: BackgroundTasks, url: str = Form(...)):
-    """Paste a direct download URL → auto-detect console, title, region → download."""
+    """Paste a direct download URL, magnet link or .torrent URL → download via aria2."""
     url = url.strip()
+    if not (url.startswith("http") or url.startswith("magnet:") or url.startswith("ftp")):
+        return JSONResponse({"error": "URL no válida"}, status_code=400)
     info = url_to_game_info(url)
     game_id = add_game(
         title=info["title"],
@@ -220,10 +222,42 @@ async def sources(request: Request):
     })
 
 
+@app.get("/archive", response_class=HTMLResponse)
+async def archive(request: Request, console: str = None):
+    counts = get_console_counts()
+    disk = get_disk_stats()
+    games = get_games(console=console, status="owned")
+    all_games = get_games(status="owned")
+    return templates.TemplateResponse("archive.html", {
+        "request": request,
+        "consoles": CONSOLES,
+        "console_counts": counts,
+        "disk": disk,
+        "games": games,
+        "total_owned": len(all_games),
+        "selected_console": console,
+    })
+
+
+@app.get("/custom-roms", response_class=HTMLResponse)
+async def custom_roms(request: Request, console: str = None):
+    return templates.TemplateResponse("custom_roms.html", {
+        "request": request,
+        "consoles": CONSOLES,
+        "selected_console": console,
+    })
+
+
 @app.get("/api/covers/search")
 async def api_cover_search(q: str, console: str = ""):
     results = await search_covers(q, console)
     return results
+
+
+@app.get("/api/aria2/status")
+async def api_aria2_status():
+    version = await aria2_version()
+    return {"online": version is not None, "version": version}
 
 
 @app.get("/api/downloads/active")
